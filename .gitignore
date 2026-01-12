@@ -1,0 +1,25 @@
+# Local/private
+CLAUDE.local.md
+*.local.md
+
+# Dependencies
+node_modules/
+
+# Build
+dist/
+
+# Environment
+.env
+.env.*
+.localnet.env
+.silo.lock
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
