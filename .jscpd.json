@@ -1,0 +1,7 @@
+{
+  "path": ["src"],
+  "minLines": 5,
+  "minTokens": 100,
+  "reporters": ["console"],
+  "ignore": ["**/dist/**", "**/example/**"]
+}

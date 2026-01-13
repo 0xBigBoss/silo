@@ -1,0 +1,40 @@
+{
+  "name": "silo",
+  "version": "0.1.0",
+  "type": "module",
+  "bin": {
+    "silo": "dist/cli.js"
+  },
+  "scripts": {
+    "dev": "bun --watch src/cli.ts",
+    "lint": "bunx oxlint .",
+    "format": "bunx oxlint --fix .",
+    "check": "bunx knip && bunx jscpd src/",
+    "typecheck": "bun run tsc --noEmit",
+    "test": "bun test",
+    "build": "bun build --target=bun --outdir dist src/cli.ts",
+    "prepublishOnly": "bun run typecheck && bun run build"
+  },
+  "dependencies": {
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.30",
+    "bun-types": "^1.1.6",
+    "jscpd": "^3.5.4",
+    "knip": "^5.20.0",
+    "lefthook": "^1.6.12",
+    "oxlint": "^1.39.0",
+    "typescript": "^5.5.4"
+  },
+  "files": [
+    "dist",
+    "docs",
+    "README.md",
+    "LICENSE",
+    "SPEC.md"
+  ],
+  "engines": {
+    "bun": ">=1.1.0"
+  }
+}

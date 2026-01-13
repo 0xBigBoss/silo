@@ -15,6 +15,7 @@ Running multiple instances of the same project on localhost causes conflicts:
 ## Quick Start
 
 **Minimal config** (`silo.toml`):
+
 ```toml
 version = 1
 
@@ -24,13 +25,16 @@ API_PORT = 8080
 ```
 
 **Usage**:
+
 ```bash
+silo init        # Create silo.toml starter config
 silo up          # Generates name, allocates ports, starts Tilt
 silo status      # Show current instance
 silo down        # Stop Tilt
 ```
 
 **Generated env** (`.localnet.env`):
+
 ```bash
 WORKSPACE_NAME=myproject-a3f7
 COMPOSE_PROJECT_NAME=localnet-myproject-a3f7
@@ -40,6 +44,7 @@ API_PORT=8080
 ```
 
 For k3d cluster support, add:
+
 ```toml
 [k3d]
 enabled = true
@@ -100,6 +105,9 @@ silo up <name>
 silo <command> [options]
 
 Commands:
+  help [command]  Show help (global or per-command)
+  init            Create silo.toml starter config
+  doc [topic]     Show bundled docs (e.g., config)
   up [name]       Start environment (creates k3d if needed, starts Tilt)
   down            Stop environment (stops Tilt, keeps k3d by default)
   status          Show current instance state
@@ -112,7 +120,12 @@ Arguments:
 
 Global Options:
   -c, --config    Path to config file (default: silo.toml)
+  -v, --verbose   Show verbose output (config path, detailed steps)
   -h, --help      Show help
+
+Help:
+  silo help <command>
+  silo <command> --help
 
 Command Options:
   up:
@@ -123,6 +136,9 @@ Command Options:
     --clean            Remove env file and lockfile
 
 Examples:
+  silo help up                  # Show subcommand help
+  silo init                      # Create silo.toml in current directory
+  silo doc config                # Print silo.toml reference
   silo up dev                    # Start instance 'dev'
   silo up                        # Reuse last instance name
   silo env feature-x             # Generate env only
@@ -134,6 +150,11 @@ Examples:
 ## Configuration Schema
 
 Projects define their environment in `silo.toml`:
+
+For the canonical config reference, run:
+```
+silo doc config
+```
 
 ```toml
 version = 1
@@ -199,20 +220,20 @@ post-down = []
 ```typescript
 interface SiloConfig {
   version: 1;
-  prefix?: string;                   // Default: 'localnet'
-  output?: string;                   // Default: '.localnet.env'
-  ports: Record<string, number>;     // Required: at least one port
-  hosts?: Record<string, string>;    // Default: { APP_HOST: '${name}.localhost' }
-  urls?: Record<string, string>;     // Optional: omit if no derived URLs needed
+  prefix?: string; // Default: 'localnet'
+  output?: string; // Default: '.localnet.env'
+  ports: Record<string, number>; // Required: at least one port
+  hosts?: Record<string, string>; // Default: { APP_HOST: '${name}.localhost' }
+  urls?: Record<string, string>; // Optional: omit if no derived URLs needed
   k3d?: K3dConfig;
   hooks?: LifecycleHooks;
 }
 
 // Defaults applied at config load time
 const CONFIG_DEFAULTS = {
-  prefix: 'localnet',
-  output: '.localnet.env',
-  hosts: { APP_HOST: '${name}.localhost' },
+  prefix: "localnet",
+  output: ".localnet.env",
+  hosts: { APP_HOST: "${name}.localhost" },
   urls: {},
 } as const;
 
@@ -226,23 +247,23 @@ interface K3dConfig {
 }
 
 interface LifecycleHooks {
-  'pre-up'?: string[];
-  'post-up'?: string[];
-  'pre-down'?: string[];
-  'post-down'?: string[];
+  "pre-up"?: string[];
+  "post-up"?: string[];
+  "pre-down"?: string[];
+  "post-down"?: string[];
 }
 
 interface InstanceIdentity {
-  name: string;                    // Sanitized workspace name
-  prefix: string;                  // Resource prefix (e.g., localnet)
-  composeName: string;             // Docker Compose project name
-  dockerNetwork: string;           // Docker network name
-  volumePrefix: string;            // Docker volume prefix
-  containerPrefix: string;         // Container name prefix
-  hosts: Record<string, string>;   // Resolved hosts including built-in TILT_HOST
-  k3dClusterName?: string;         // K3d cluster name if k3d enabled
-  k3dRegistryName?: string;        // K3d registry name if k3d enabled
-  kubeconfigPath?: string;         // Path to kubeconfig for this instance
+  name: string; // Sanitized workspace name
+  prefix: string; // Resource prefix (e.g., localnet)
+  composeName: string; // Docker Compose project name
+  dockerNetwork: string; // Docker network name
+  volumePrefix: string; // Docker volume prefix
+  containerPrefix: string; // Container name prefix
+  hosts: Record<string, string>; // Resolved hosts including built-in TILT_HOST
+  k3dClusterName?: string; // K3d cluster name if k3d enabled
+  k3dRegistryName?: string; // K3d registry name if k3d enabled
+  kubeconfigPath?: string; // Path to kubeconfig for this instance
 }
 
 interface InstanceState {
@@ -251,8 +272,8 @@ interface InstanceState {
   identity: InstanceIdentity;
   createdAt: string;
   k3dClusterCreated: boolean;
-  tiltPid?: number;           // Set when Tilt starts, cleared on clean exit
-  tiltStartedAt?: string;     // ISO timestamp when Tilt was started
+  tiltPid?: number; // Set when Tilt starts, cleared on clean exit
+  tiltStartedAt?: string; // ISO timestamp when Tilt was started
 }
 
 interface Lockfile {
@@ -354,12 +375,12 @@ Variables use shell-style `${VAR}` syntax. Resolution happens in phases:
 
 These are derived from the instance name and config:
 
-| Variable | Source | Example |
-|----------|--------|---------|
-| `${name}` | Sanitized instance name | `feature-x` |
-| `${prefix}` | Config `prefix` or default | `localnet` |
-| `${WORKSPACE_NAME}` | Same as `${name}` | `feature-x` |
-| `${COMPOSE_PROJECT_NAME}` | `{prefix}-{name}` | `localnet-feature-x` |
+| Variable                  | Source                     | Example              |
+| ------------------------- | -------------------------- | -------------------- |
+| `${name}`                 | Sanitized instance name    | `feature-x`          |
+| `${prefix}`               | Config `prefix` or default | `localnet`           |
+| `${WORKSPACE_NAME}`       | Same as `${name}`          | `feature-x`          |
+| `${COMPOSE_PROJECT_NAME}` | `{prefix}-{name}`          | `localnet-feature-x` |
 
 ### Phase 2: Hosts (can use identity variables)
 
@@ -405,14 +426,14 @@ This allows k3d port mappings to use dynamically allocated ports.
 
 ### Available Variables Summary
 
-| In `hosts` | In `urls` | In `k3d.args` |
-|------------|-----------|---------------|
-| `${name}` | `${name}` | `${name}` |
-| `${prefix}` | `${prefix}` | `${prefix}` |
-| | `${WORKSPACE_NAME}` | `${WORKSPACE_NAME}` |
-| | `${COMPOSE_PROJECT_NAME}` | `${COMPOSE_PROJECT_NAME}` |
-| | All `hosts.*` keys | All `hosts.*` keys |
-| | All `ports.*` keys | All `ports.*` keys |
+| In `hosts`  | In `urls`                 | In `k3d.args`             |
+| ----------- | ------------------------- | ------------------------- |
+| `${name}`   | `${name}`                 | `${name}`                 |
+| `${prefix}` | `${prefix}`               | `${prefix}`               |
+|             | `${WORKSPACE_NAME}`       | `${WORKSPACE_NAME}`       |
+|             | `${COMPOSE_PROJECT_NAME}` | `${COMPOSE_PROJECT_NAME}` |
+|             | All `hosts.*` keys        | All `hosts.*` keys        |
+|             | All `ports.*` keys        | All `ports.*` keys        |
 
 ## Port Allocation Strategy
 
@@ -443,12 +464,67 @@ for each port_key in config.ports (in declaration order):
 ### Port Reuse from Lockfile
 
 When lockfile exists and `--force` not specified:
+
 1. Load ports from lockfile
 2. Verify each port is still free
 3. If any port is occupied, reallocate only that port (keep others stable)
 4. Update lockfile with new allocation
 
 ## Lifecycle Operations
+
+### `silo init`
+
+1. Resolve config path (default: `silo.toml`, overridable via `-c/--config`)
+2. If the config file already exists: error with a clear message
+3. Write a starter `silo.toml` template
+4. Print banner + short intro + Fallout-style quote + quick explainer
+5. Print next-step hint (`silo up`)
+
+Starter config template:
+
+```toml
+# Generated by silo init
+# Docs: silo doc config
+
+version = 1
+
+[ports]
+WEB_PORT = 3000
+API_PORT = 8080
+REDIS_PORT = 6379
+TILT_PORT = 10350
+
+[hosts]
+APP_HOST = "${name}.localhost"
+API_HOST = "api.${name}.localhost"
+
+# Optional k3d integration (uncomment to enable)
+# [k3d]
+# enabled = true
+#
+# [k3d.registry]
+# enabled = true
+```
+
+Init output (example):
+
+```
+      __               ____  _ _
+     /  \             / ___|| (_) ___
+    /____\            \___ \| | |/ _ \
+    | [] |             ___) | | | (_) |
+    |    |            |____/|_|_|\___/
+    |    |
+    |____|
+~~~~|____|~~~~~
+
+silo init - isolate your dev worlds.
+
+"War. War never changes. But your localhost can." - Silo Overseer
+
+silo generates a silo.toml that defines ports, hosts, and optional k3d settings.
+Next: edit the file, then run `silo up`.
+```
 
 ### `silo up [name]`
 
@@ -464,6 +540,7 @@ When lockfile exists and `--force` not specified:
    - Create k3d cluster with instance-specific name
    - Create registry if configured
    - Write kubeconfig to instance-specific path
+   - Advertise registry via `local-registry-hosting` ConfigMap (Tilt auto-discovery)
 10. Run `post-up` hooks
 11. Start Tilt in foreground
     - Write `tiltPid` and `tiltStartedAt` to lockfile
@@ -475,11 +552,12 @@ When lockfile exists and `--force` not specified:
 
 1. Read lockfile for current instance
 2. Run `pre-down` hooks
-3. Stop Tilt if running
-4. k3d cluster is **kept by default** (faster iteration)
+3. Run `tilt down` (best-effort cleanup of resources)
+4. Stop Tilt if running
+5. k3d cluster is **kept by default** (faster iteration)
    - Use `silo down --delete-cluster` to remove k3d cluster
-5. Run `post-down` hooks
-6. Env file and lockfile are kept (for `silo up` to reuse ports)
+6. Run `post-down` hooks
+7. Env file and lockfile are kept (for `silo up` to reuse ports)
    - Use `silo down --clean` to remove them
 
 ### `silo status`
@@ -507,7 +585,26 @@ When lockfile exists and `--force` not specified:
 3. Allocate ports
 4. Generate env file
 5. Write lockfile
-6. Exit (don't start anything)
+6. Print ports and URLs
+7. Exit (don't start anything)
+
+### `silo doc [topic]`
+
+1. If no topic provided, list available docs
+2. Print the requested doc in raw markdown (no extra formatting)
+
+## Logging
+
+silo prints progress logs for each command to show what it's doing. There is no quiet mode.
+
+**Default (info) logs**:
+- Major lifecycle steps (config load, name resolution, port allocation, k3d, hooks, Tilt)
+- Actions taken (env/lockfile written, cluster created/reused, Tilt started)
+- Summaries (ports/URLs for `silo env`, status summary for `silo status`)
+
+**Verbose mode** (`-v/--verbose`) adds:
+- Config path used
+- Extra details about decisions (port reuse, lockfile reuse)
 
 ## Name Resolution
 
@@ -518,6 +615,7 @@ Instance names are resolved in order:
 3. **Auto-generate**: `{directory}-{random}` (e.g., `myproject-a3f7`)
 
 Auto-generation:
+
 - Takes current directory basename
 - Appends 4-character random suffix (lowercase alphanumeric)
 - Sanitizes result (lowercase, alphanumeric + dashes, max 63 chars)
@@ -531,6 +629,7 @@ function generateName(): string {
 ```
 
 This ensures:
+
 - Zero-config first run (`silo up` just works)
 - Stable name on subsequent runs (lockfile persists it)
 - Uniqueness across multiple clones of same repo
@@ -548,12 +647,14 @@ post-down = []
 ```
 
 **Execution:**
+
 - Commands run sequentially in order listed
 - Working directory is project root (where silo.toml lives)
 - Environment includes all generated variables (ports, identity, URLs)
 - Hooks inherit silo's stdout/stderr
 
 **Failure handling:**
+
 - If a hook exits non-zero, silo stops and reports the failure
 - `pre-up` failure: Abort before k3d created (env/lockfile already written, can be reused)
 - `post-up` failure: k3d exists but Tilt not started (user runs `silo down` to clean up)
@@ -588,6 +689,7 @@ silo down:
 ### Instance State Detection
 
 **"Already running" detection** (checked in `silo up`):
+
 1. Lockfile exists with `tiltPid` set
 2. Process with that PID is still running
 3. Process is actually Tilt (check process name)
@@ -595,19 +697,20 @@ silo down:
 If all three: error with "Instance '{name}' already running. Use `silo down` first."
 
 **"External Tilt" detection**:
+
 1. Check for any Tilt process in current directory (via `pgrep -f "tilt.*$(pwd)"`)
 2. If found and not tracked in lockfile: error with "Tilt already running outside silo. Stop it first."
 
 ### Missing Lockfile Behavior
 
-| Command | Lockfile Missing | Behavior |
-|---------|-----------------|----------|
-| `silo up` | OK | Auto-generates name, normal startup, creates lockfile |
-| `silo up <name>` | OK | Uses provided name, normal startup, creates lockfile |
-| `silo down` | Error | "No lockfile found. Nothing to stop." |
-| `silo status` | OK | "No active instance. Run `silo up` to start." |
-| `silo env` | OK | Auto-generates name, normal generation, creates lockfile |
-| `silo env <name>` | OK | Uses provided name, normal generation, creates lockfile |
+| Command           | Lockfile Missing | Behavior                                                 |
+| ----------------- | ---------------- | -------------------------------------------------------- |
+| `silo up`         | OK               | Auto-generates name, normal startup, creates lockfile    |
+| `silo up <name>`  | OK               | Uses provided name, normal startup, creates lockfile     |
+| `silo down`       | Error            | "No lockfile found. Nothing to stop."                    |
+| `silo status`     | OK               | "No active instance. Run `silo up` to start."            |
+| `silo env`        | OK               | Auto-generates name, normal generation, creates lockfile |
+| `silo env <name>` | OK               | Uses provided name, normal generation, creates lockfile  |
 
 ## k3d Integration
 
@@ -618,6 +721,7 @@ silo calls k3d directly (not ctlptl). Instance isolation includes:
 - **Kubeconfig**: Separate file per instance at `~/.kube/{prefix}-{name}`
 
 Creation command (assembled from config + allocated ports):
+
 ```bash
 k3d cluster create localnet-feature-x \
   --kubeconfig-update-default=false \
@@ -634,9 +738,42 @@ k3d kubeconfig get localnet-feature-x > ~/.kube/localnet-feature-x
 Note: Registry port (`5000` above) comes from allocated `K3D_REGISTRY_PORT`.
 
 Deletion:
+
 ```bash
 k3d cluster delete localnet-feature-x
 ```
+
+### Registry Discovery (Tilt Auto-Detection)
+
+To make registry usage seamless, silo advertises the local registry using the Kubernetes
+standard `local-registry-hosting` ConfigMap in the `kube-public` namespace. Tilt reads
+this ConfigMap and automatically discovers the registry without `default_registry()` or
+explicit image refs.
+
+Applied after cluster + registry creation:
+
+```bash
+cat <<EOF | KUBECONFIG=~/.kube/localnet-feature-x kubectl apply -f -
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: local-registry-hosting
+  namespace: kube-public
+data:
+  localRegistryHosting.v1: |
+    host: "localhost:5000"
+    hostFromContainerRuntime: "localnet-feature-x-registry.localhost:5000"
+    hostFromClusterNetwork: "localnet-feature-x-registry.localhost:5000"
+EOF
+```
+
+Notes:
+
+- `host` must match the registry address reachable from the **developer machine**.
+- `hostFromContainerRuntime` is the address that the **node runtime** uses to pull images.
+- `hostFromClusterNetwork` is the address that **pods in the cluster** can use if needed.
+- `help` is optional and may point to project-specific registry docs.
+- This is written only when `k3d.registry.enabled = true`.
 
 ## Browser Isolation
 
@@ -666,19 +803,23 @@ API_HOST = "api.${name}.localhost"
 ```
 
 **Default** (if `[hosts]` omitted):
+
 ```toml
 [hosts]
 APP_HOST = "${name}.localhost"
 ```
 
 **Built-in hosts** (always added to `hosts` record):
+
 - `TILT_HOST`: Copies `APP_HOST` value (for Tilt UI access at `http://${TILT_HOST}:${TILT_PORT}`)
 
 **Resolution**: `${name}` is replaced with the sanitized instance name.
+
 - Instance: `feature-x` → `APP_HOST=feature-x.localhost`
 - Instance: `feature-x` → `ADMIN_HOST=admin.feature-x.localhost`
 
 All host variables are available for URL templates:
+
 ```toml
 [urls]
 WEB_URL = "http://${APP_HOST}:${WEB_PORT}"
@@ -690,10 +831,16 @@ ADMIN_URL = "http://${ADMIN_HOST}:${ADMIN_PORT}"
 **Tiltfile location**: Expected in current directory. User runs `silo up` from project root.
 
 **Environment passing**: silo does both:
+
 1. Sources env file before running tilt (`source .localnet.env && tilt up`)
 2. Writes env file that Tiltfile can read directly (`read_file('.localnet.env')`)
 
 Projects can use either approach in their Tiltfile.
+
+**Registry discovery**: When `k3d.registry.enabled = true`, silo writes the
+`local-registry-hosting` ConfigMap so Tilt can auto-detect the local registry
+without `default_registry()`. This avoids conflicts with `docker_compose()` and
+keeps k8s image names simple.
 
 ## Non-Goals
 
@@ -722,6 +869,9 @@ example/
   silo.toml           # silo configuration
   Tiltfile            # Tilt orchestration (includes inline k8s manifests)
   docker-compose.yaml # Redis service definition
+  api/
+    server.ts         # Simple Bun API server
+    Dockerfile        # Container build
   web/
     server.ts         # Simple Bun web server
     Dockerfile        # Container build
@@ -775,30 +925,35 @@ post-up = ["./scripts/seed-data.sh"]
 ### Example Tiltfile
 
 ```python
-# example/Tiltfile
 load('ext://dotenv', 'dotenv')
 dotenv('.localnet.env')
 
 # Read env vars for registry and ports
-registry = os.getenv('K3D_REGISTRY_NAME', 'localhost:5000')
 web_port = os.getenv('WEB_PORT', '3000')
+api_port = os.getenv('API_PORT', '8080')
 redis_port = os.getenv('REDIS_PORT', '6379')
 app_host = os.getenv('APP_HOST', 'localhost')
 workspace_name = os.getenv('WORKSPACE_NAME', 'unknown')
-
-# Set default registry so Tilt rewrites image refs automatically
-default_registry(registry)
 
 # Redis via docker-compose (simpler for stateful services)
 docker_compose('docker-compose.yaml')
 dc_resource('redis', labels=['backend'])
 
-# Web service via k8s (demonstrates k3d cluster usage)
+# Web + API services via k8s (demonstrates k3d cluster usage)
+# Tilt will auto-discover the local registry via local-registry-hosting.
 docker_build(
-  'web',  # Tilt prepends registry automatically via default_registry()
+  'web',
   './web',
   live_update=[
     sync('./web', '/app'),
+  ]
+)
+
+docker_build(
+  'api',
+  './api',
+  live_update=[
+    sync('./api', '/app'),
   ]
 )
 
@@ -825,11 +980,13 @@ spec:
             - containerPort: 3000
           env:
             - name: REDIS_URL
-              value: "redis://host.docker.internal:{}"
+              value: "redis://host.docker.internal:{REDIS_PORT}"
+            - name: API_URL
+              value: "http://api:8080"
             - name: APP_HOST
-              value: "{}"
+              value: "{APP_HOST}"
             - name: WORKSPACE_NAME
-              value: "{}"
+              value: "{WORKSPACE_NAME}"
           readinessProbe:
             httpGet:
               path: /health
@@ -847,13 +1004,63 @@ spec:
   ports:
     - port: 3000
       targetPort: 3000
-""".format(redis_port, app_host, workspace_name)))
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: api
+  template:
+    metadata:
+      labels:
+        app: api
+    spec:
+      containers:
+        - name: api
+          image: api
+          ports:
+            - containerPort: 8080
+          env:
+            - name: WORKSPACE_NAME
+              value: "{WORKSPACE_NAME}"
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 5
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: api
+spec:
+  selector:
+    app: api
+  ports:
+    - port: 8080
+      targetPort: 8080
+""".format(
+  REDIS_PORT=redis_port,
+  APP_HOST=app_host,
+  WORKSPACE_NAME=workspace_name,
+)))
+
+k8s_resource(
+  'api',
+  port_forwards=['{}:8080'.format(api_port)],
+  labels=['backend']
+)
 
 k8s_resource(
   'web',
   port_forwards=['{}:3000'.format(web_port)],
   labels=['frontend'],
-  resource_deps=['redis']
+  resource_deps=['redis', 'api']
 )
 ```
 
@@ -884,16 +1091,21 @@ const server = Bun.serve({
     }
 
     if (url.pathname === "/") {
-      return new Response(`
+      const apiUrl = process.env.API_URL ?? "unknown";
+      return new Response(
+        `
         <html>
           <body>
             <h1>silo Example</h1>
             <p>Host: ${host}</p>
             <p>Instance: ${process.env.WORKSPACE_NAME}</p>
             <p>Ports: WEB=${process.env.WEB_PORT}, API=${process.env.API_PORT}</p>
+            <p>API URL: ${apiUrl}</p>
           </body>
         </html>
-      `, { headers: { "Content-Type": "text/html" } });
+      `,
+        { headers: { "Content-Type": "text/html" } }
+      );
     }
 
     return new Response("Not found", { status: 404 });
@@ -901,6 +1113,35 @@ const server = Bun.serve({
 });
 
 console.log(`Server running on port ${server.port}`);
+```
+
+### Example API Server
+
+```typescript
+// example/api/server.ts
+const server = Bun.serve({
+  port: 8080,
+  fetch(req) {
+    const url = new URL(req.url);
+    const host = req.headers.get("host") ?? "unknown";
+
+    if (url.pathname === "/health") {
+      return Response.json({ status: "ok", service: "api", host });
+    }
+
+    if (url.pathname === "/") {
+      return Response.json({
+        service: "api",
+        host,
+        instance: process.env.WORKSPACE_NAME,
+      });
+    }
+
+    return new Response("Not found", { status: 404 });
+  },
+});
+
+console.log(`API server running on port ${server.port}`);
 ```
 
 ### Running the Example
@@ -930,10 +1171,11 @@ k3d registry list
 # NAME                                          ROLE       CLUSTER
 # localnet-example-a3f7-registry.localhost      registry   localnet-example-a3f7
 
-# Verify pod is running in k3d cluster
+# Verify pods are running in k3d cluster
 KUBECONFIG=~/.kube/localnet-example-a3f7 kubectl get pods
 # NAME                   READY   STATUS    RESTARTS   AGE
 # web-5d4f8b7c9f-x2k4j   1/1     Running   0          30s
+# api-7b9c6f8d2c-9n8k1   1/1     Running   0          30s
 
 # Verify web service responds (via Tilt port-forward)
 curl http://example-a3f7.localhost:3000/health
@@ -979,36 +1221,37 @@ silo up second
 
 The example verifies these silo features:
 
-| Feature | Verification |
-|---------|--------------|
-| **Port allocation** | `silo status` shows allocated ports match env file |
-| **Name generation** | First `silo up` creates name from directory + suffix |
-| **Name reuse** | Second `silo up` (no arg) reuses lockfile name |
-| **Host isolation** | Browser at `http://{name}.localhost:3000` shows correct instance |
-| **Env file** | `.localnet.env` contains all expected variables |
-| **Lockfile** | `.silo.lock` persists instance state |
-| **k3d cluster creation** | `k3d cluster list` shows instance-named cluster |
-| **k3d registry** | `k3d registry list` shows instance-named registry |
-| **Isolated kubeconfig** | `~/.kube/{prefix}-{name}` exists and works |
-| **k8s pod running** | `kubectl get pods` shows web pod in Running state |
-| **Registry push** | Tilt builds and pushes to instance registry |
-| **k3d cluster reuse** | Second `silo up` reuses existing cluster |
-| **k3d cluster delete** | `silo down --delete-cluster` removes cluster |
-| **Pre-up hook** | `check-deps.sh` runs before k3d created |
-| **Post-up hook** | `seed-data.sh` runs after k3d ready |
-| **Tilt foreground** | Ctrl+C in silo stops Tilt cleanly |
-| **Down command** | `silo down` stops Tilt, keeps k3d |
-| **Down --clean** | `silo down --clean` removes env and lockfile |
-| **Multiple instances** | Two instances have separate k3d clusters, registries, ports |
+| Feature                  | Verification                                                     |
+| ------------------------ | ---------------------------------------------------------------- |
+| **Port allocation**      | `silo status` shows allocated ports match env file               |
+| **Name generation**      | First `silo up` creates name from directory + suffix             |
+| **Name reuse**           | Second `silo up` (no arg) reuses lockfile name                   |
+| **Host isolation**       | Browser at `http://{name}.localhost:3000` shows correct instance |
+| **Env file**             | `.localnet.env` contains all expected variables                  |
+| **Lockfile**             | `.silo.lock` persists instance state                             |
+| **k3d cluster creation** | `k3d cluster list` shows instance-named cluster                  |
+| **k3d registry**         | `k3d registry list` shows instance-named registry                |
+| **Isolated kubeconfig**  | `~/.kube/{prefix}-{name}` exists and works                       |
+| **k8s pods running**     | `kubectl get pods` shows web and api pods in Running state       |
+| **Registry push**        | Tilt builds and pushes to instance registry                      |
+| **k3d cluster reuse**    | Second `silo up` reuses existing cluster                         |
+| **k3d cluster delete**   | `silo down --delete-cluster` removes cluster                     |
+| **Pre-up hook**          | `check-deps.sh` runs before k3d created                          |
+| **Post-up hook**         | `seed-data.sh` runs after k3d ready                              |
+| **Tilt foreground**      | Ctrl+C in silo stops Tilt cleanly                                |
+| **Down command**         | `silo down` stops Tilt, keeps k3d                                |
+| **Down --clean**         | `silo down --clean` removes env and lockfile                     |
+| **Multiple instances**   | Two instances have separate k3d clusters, registries, ports      |
 
 ### Integration Test Script
 
 ```bash
 #!/bin/bash
-# example/test-silo.sh
 # Automated verification of silo features
 
 set -euo pipefail
+
+SILO_BIN="${SILO_BIN:-silo}"
 
 cd "$(dirname "$0")"
 
@@ -1017,14 +1260,14 @@ CLUSTER_NAME="localnet-${INSTANCE_NAME}"  # prefix + name
 
 cleanup() {
   echo "=== Cleanup ==="
-  silo down --delete-cluster --clean 2>/dev/null || true
+  $SILO_BIN down --delete-cluster --clean 2>/dev/null || true
   rm -f .localnet.env .silo.lock
 }
 trap cleanup EXIT
 
 echo "=== Test: Fresh start ==="
 rm -f .localnet.env .silo.lock
-silo env "$INSTANCE_NAME"
+$SILO_BIN env "$INSTANCE_NAME"
 [ -f .localnet.env ] || (echo "FAIL: env file not created"; exit 1)
 [ -f .silo.lock ] || (echo "FAIL: lockfile not created"; exit 1)
 grep -q "WORKSPACE_NAME=${INSTANCE_NAME}" .localnet.env || (echo "FAIL: wrong name"; exit 1)
@@ -1032,7 +1275,7 @@ echo "PASS: Fresh start"
 
 echo "=== Test: Name reuse ==="
 rm -f .localnet.env
-silo env
+$SILO_BIN env
 grep -q "WORKSPACE_NAME=${INSTANCE_NAME}" .localnet.env || (echo "FAIL: name not reused"; exit 1)
 echo "PASS: Name reuse"
 
@@ -1053,9 +1296,27 @@ echo "PASS: URL interpolation"
 
 echo "=== Test: k3d cluster creation ==="
 # Start silo in background for k3d test
-silo up "$INSTANCE_NAME" &
+$SILO_BIN up "$INSTANCE_NAME" &
 SILO_PID=$!
-sleep 10  # Wait for k3d cluster to be created
+
+wait_for() {
+  local description=$1
+  local timeout=$2
+  local command=$3
+  local interval=2
+  local elapsed=0
+  while [ $elapsed -lt $timeout ]; do
+    if eval "$command"; then
+      return 0
+    fi
+    sleep $interval
+    elapsed=$((elapsed + interval))
+  done
+  echo "FAIL: timeout waiting for ${description}"
+  return 1
+}
+
+wait_for "k3d cluster" 60 "k3d cluster list | grep -q \"$CLUSTER_NAME\"" || (kill $SILO_PID 2>/dev/null; exit 1)
 
 k3d cluster list | grep -q "$CLUSTER_NAME" || (echo "FAIL: k3d cluster not created"; kill $SILO_PID 2>/dev/null; exit 1)
 echo "PASS: k3d cluster creation"
@@ -1066,13 +1327,13 @@ echo "PASS: k3d registry"
 
 echo "=== Test: Isolated kubeconfig ==="
 KUBECONFIG_PATH=$(grep "KUBECONFIG=" .localnet.env | cut -d= -f2)
-[ -f "$KUBECONFIG_PATH" ] || (echo "FAIL: kubeconfig not created"; kill $SILO_PID 2>/dev/null; exit 1)
+wait_for "kubeconfig file" 60 "test -f \"$KUBECONFIG_PATH\"" || (echo "FAIL: kubeconfig not created"; kill $SILO_PID 2>/dev/null; exit 1)
 echo "PASS: Isolated kubeconfig"
 
-echo "=== Test: k8s pod running ==="
-sleep 30  # Wait for pod to be ready
-KUBECONFIG="$KUBECONFIG_PATH" kubectl get pods | grep -q "web.*Running" || (echo "FAIL: pod not running"; kill $SILO_PID 2>/dev/null; exit 1)
-echo "PASS: k8s pod running"
+echo "=== Test: k8s pods running ==="
+wait_for "web pod running" 120 "KUBECONFIG=\"$KUBECONFIG_PATH\" kubectl get pods | grep -q \"web.*Running\"" || (echo "FAIL: web pod not running"; kill $SILO_PID 2>/dev/null; exit 1)
+wait_for "api pod running" 120 "KUBECONFIG=\"$KUBECONFIG_PATH\" kubectl get pods | grep -q \"api.*Running\"" || (echo "FAIL: api pod not running"; kill $SILO_PID 2>/dev/null; exit 1)
+echo "PASS: k8s pods running"
 
 echo "=== Test: Stop silo ==="
 kill $SILO_PID 2>/dev/null || true
@@ -1083,17 +1344,17 @@ k3d cluster list | grep -q "$CLUSTER_NAME" || (echo "FAIL: cluster deleted on re
 echo "PASS: k3d cluster preserved"
 
 echo "=== Test: k3d cluster deletion ==="
-silo down --delete-cluster
+$SILO_BIN down --delete-cluster
 k3d cluster list | grep -q "$CLUSTER_NAME" && (echo "FAIL: cluster not deleted"; exit 1)
 echo "PASS: k3d cluster deletion"
 
 echo "=== Test: --clean removes env and lockfile ==="
 # Recreate files first
-silo env "$INSTANCE_NAME"
+$SILO_BIN env "$INSTANCE_NAME"
 [ -f .localnet.env ] || (echo "FAIL: env file not recreated"; exit 1)
 [ -f .silo.lock ] || (echo "FAIL: lockfile not recreated"; exit 1)
 # Now test --clean
-silo down --clean
+$SILO_BIN down --clean
 [ -f .localnet.env ] && (echo "FAIL: env file not removed by --clean"; exit 1)
 [ -f .silo.lock ] && (echo "FAIL: lockfile not removed by --clean"; exit 1)
 echo "PASS: --clean removes env and lockfile"
@@ -1106,12 +1367,14 @@ echo "All tests passed!"
 All design decisions were made through interview. Key choices:
 
 **Tech Stack:**
+
 - **Runtime**: Bun (latest stable)
 - **Config format**: TOML (`silo.toml`)
 - **Distribution**: Bun single-file executable
 - **Tooling**: oxlint, oxformat, knip, jscpd, lefthook
 
 **Architecture:**
+
 - **Port allocation**: Default-first (try configured port, fall back to ephemeral)
 - **k3d registry port**: Allocated like other ports via `ports.K3D_REGISTRY_PORT`
 - **Lifecycle scope**: Includes up/down/status/env commands
@@ -1136,31 +1399,32 @@ All design decisions were made through interview. Key choices:
 
 ### Bun APIs Used
 
-| Purpose | API | Notes |
-|---------|-----|-------|
-| File I/O | `Bun.file()`, `Bun.write()` | Read/write config, env, lockfile |
-| Process spawn | `Bun.spawn()`, `Bun.spawnSync()` | Run k3d, tilt, hooks |
-| Port check | `Bun.listen()` | TCP bind test for port availability |
-| CLI args | `process.argv`, `Bun.argv` | Argument parsing |
-| Signals | `process.on('SIGINT')` | Handle Ctrl+C |
-| Shell | `Bun.$` (shell API) | Run hook scripts |
-| Environment | `process.env` | Read/set env vars |
+| Purpose       | API                              | Notes                               |
+| ------------- | -------------------------------- | ----------------------------------- |
+| File I/O      | `Bun.file()`, `Bun.write()`      | Read/write config, env, lockfile    |
+| Process spawn | `Bun.spawn()`, `Bun.spawnSync()` | Run k3d, tilt, hooks                |
+| Port check    | `Bun.listen()`                   | TCP bind test for port availability |
+| CLI args      | `process.argv`, `Bun.argv`       | Argument parsing                    |
+| Signals       | `process.on('SIGINT')`           | Handle Ctrl+C                       |
+| Shell         | `Bun.$` (shell API)              | Run hook scripts                    |
+| Environment   | `process.env`                    | Read/set env vars                   |
 
 ### Configuration Format
 
 **TOML** (not YAML) for configuration files:
+
 - File: `silo.toml`
 - Parser: `@iarna/toml` or Bun-native if available
 
 ### Development Tooling
 
-| Tool | Purpose | Config File |
-|------|---------|-------------|
-| **oxlint** | Linting (fast, Rust-based) | `oxlintrc.json` |
+| Tool         | Purpose                          | Config File       |
+| ------------ | -------------------------------- | ----------------- |
+| **oxlint**   | Linting (fast, Rust-based)       | `oxlintrc.json`   |
 | **oxformat** | Formatting (companion to oxlint) | Via oxlint config |
-| **knip** | Dead code/dependency detection | `knip.json` |
-| **jscpd** | Copy-paste detection | `.jscpd.json` |
-| **lefthook** | Git hooks (pre-commit, pre-push) | `lefthook.yml` |
+| **knip**     | Dead code/dependency detection   | `knip.json`       |
+| **jscpd**    | Copy-paste detection             | `.jscpd.json`     |
+| **lefthook** | Git hooks (pre-commit, pre-push) | `lefthook.yml`    |
 
 ### Build & Distribution
 
@@ -1214,10 +1478,14 @@ pre-push:
 src/
   cli.ts              # Entry point, argument parsing
   commands/
+    init.ts           # silo init implementation
+    doc.ts            # silo doc implementation
     up.ts             # silo up implementation
     down.ts           # silo down implementation
     status.ts         # silo status implementation
     env.ts            # silo env implementation
+docs/
+  silo-toml.md        # silo.toml reference (bundled with CLI)
   core/
     config.ts         # Load and validate silo.toml
     name.ts           # Name resolution
@@ -1249,6 +1517,7 @@ const { values, positionals } = parseArgs({
     config: { type: "string", short: "c", default: "silo.toml" },
     force: { type: "boolean", short: "f", default: false },
     help: { type: "boolean", short: "h", default: false },
+    verbose: { type: "boolean", short: "v", default: false },
     "delete-cluster": { type: "boolean", default: false },
     clean: { type: "boolean", default: false },
   },
@@ -1259,17 +1528,20 @@ const { values, positionals } = parseArgs({
 const [command, ...args] = positionals;
 
 switch (command) {
+  case "init":
+    await import("./commands/init").then((m) => m.init(values));
+    break;
   case "up":
-    await import("./commands/up").then(m => m.up(args[0], values));
+    await import("./commands/up").then((m) => m.up(args[0], values));
     break;
   case "down":
-    await import("./commands/down").then(m => m.down(values));
+    await import("./commands/down").then((m) => m.down(values));
     break;
   case "status":
-    await import("./commands/status").then(m => m.status(values));
+    await import("./commands/status").then((m) => m.status(values));
     break;
   case "env":
-    await import("./commands/env").then(m => m.env(args[0], values));
+    await import("./commands/env").then((m) => m.env(args[0], values));
     break;
   default:
     printHelp();
@@ -1317,7 +1589,10 @@ async function startTilt(envFile: string): Promise<Bun.Subprocess> {
 }
 
 // For hooks, use shell API
-async function runHook(script: string, env: Record<string, string>): Promise<void> {
+async function runHook(
+  script: string,
+  env: Record<string, string>
+): Promise<void> {
   const result = await $`${script}`.env(env).quiet();
   if (result.exitCode !== 0) {
     throw new Error(`Hook failed: ${script}`);
