@@ -1,6 +1,7 @@
 {
-  "name": "silo",
+  "name": "@0xbigboss/silo",
   "version": "0.1.0",
+  "description": "Isolated local development environments for Tilt and k3d.",
   "type": "module",
   "bin": {
     "silo": "dist/cli.js"
@@ -34,6 +35,18 @@
     "LICENSE",
     "SPEC.md"
   ],
+  "keywords": [
+    "cli",
+    "dev-environment",
+    "tilt",
+    "k3d",
+    "kubernetes",
+    "local-development",
+    "ports",
+    "isolation",
+    "bun"
+  ],
+  "license": "MIT",
   "engines": {
     "bun": ">=1.1.0"
   }
