@@ -46,6 +46,14 @@
     "isolation",
     "bun"
   ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/0xBigBoss/silo.git"
+  },
+  "homepage": "https://github.com/0xBigBoss/silo",
+  "bugs": {
+    "url": "https://github.com/0xBigBoss/silo/issues"
+  },
   "license": "MIT",
   "engines": {
     "bun": ">=1.1.0"
