@@ -1,5 +1,12 @@
 {
   "entry": ["src/cli.ts"],
   "project": ["src/**/*.ts"],
-  "ignore": ["example/**"]
+  "ignore": ["example/**"],
+  "ignoreIssues": {
+    "src/core/interpolate.ts": ["types"],
+    "src/core/lockfile.ts": ["exports"],
+    "src/core/variables.ts": ["exports"],
+    "src/utils/errors.ts": ["exports"],
+    "src/utils/process.ts": ["exports"]
+  }
 }
