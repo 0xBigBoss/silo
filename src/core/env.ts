@@ -13,6 +13,10 @@ export const buildEnvVars = (state: InstanceState, urls: Record<string, string>)
     CONTAINER_PREFIX: state.identity.containerPrefix,
   };
 
+  if (state.profile) {
+    env.SILO_PROFILE = state.profile;
+  }
+
   Object.entries(state.identity.hosts).forEach(([key, value]) => {
     env[key] = value;
   });
@@ -61,6 +65,9 @@ export const renderEnvFile = (params: {
   lines.push(toEnvLine("DOCKER_NETWORK", state.identity.dockerNetwork));
   lines.push(toEnvLine("VOLUME_PREFIX", state.identity.volumePrefix));
   lines.push(toEnvLine("CONTAINER_PREFIX", state.identity.containerPrefix));
+  if (state.profile) {
+    lines.push(toEnvLine("SILO_PROFILE", state.profile));
+  }
   lines.push("");
 
   lines.push("# === Hosts (browser isolation) ===");

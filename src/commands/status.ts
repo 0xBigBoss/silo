@@ -3,6 +3,7 @@ import { loadConfig } from "../core/config";
 import { readLockfile } from "../core/lockfile";
 import { buildTemplateVars } from "../core/variables";
 import { resolveTemplateRecord } from "../core/instance";
+import { applyProfile } from "../core/profile";
 import { clusterExists } from "../backends/k3d";
 import { isPidRunning, isTiltProcess } from "../utils/process";
 import { logger } from "../utils/logger";
@@ -23,6 +24,10 @@ export const status = async (options: { config: string }): Promise<void> => {
     return;
   }
 
+  const profileName = lockfile.instance.profile;
+  const resolvedConfig =
+    config && profileName ? applyProfile(config, profileName) : config;
+
   const tiltPid = lockfile.instance.tiltPid;
   const tiltRunning = tiltPid
     ? isPidRunning(tiltPid) && (await isTiltProcess(tiltPid))
@@ -34,6 +39,9 @@ export const status = async (options: { config: string }): Promise<void> => {
     : false;
 
   logger.info(`Instance: ${lockfile.instance.name}`);
+  if (profileName) {
+    logger.info(`Profile: ${profileName}`);
+  }
   logger.info(`State: ${tiltRunning ? "running" : "stopped"}`);
   if (tiltPid) {
     logger.info(`Tilt: ${tiltRunning ? `pid ${tiltPid}` : "not running"}`);
@@ -53,10 +61,10 @@ export const status = async (options: { config: string }): Promise<void> => {
     logger.info(`  ${key}: ${value}`);
   });
 
-  if (config && config.urlOrder.length > 0) {
+  if (resolvedConfig && resolvedConfig.urlOrder.length > 0) {
     const urls = resolveTemplateRecord(
-      config.urls,
-      config.urlOrder,
+      resolvedConfig.urls,
+      resolvedConfig.urlOrder,
       buildTemplateVars({
         identity: lockfile.instance.identity,
         ports: lockfile.instance.ports,

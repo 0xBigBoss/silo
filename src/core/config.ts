@@ -38,6 +38,42 @@ const K3dSchema = z
   })
   .strict();
 
+const ProfileK3dSchema = z
+  .object({
+    enabled: z.boolean().optional(),
+    args: z.array(z.string()).optional(),
+    registry: z
+      .object({
+        enabled: z.boolean().optional(),
+      })
+      .strict()
+      .optional(),
+  })
+  .strict();
+
+const ProfileAppendSchema = z
+  .object({
+    hooks: HooksSchema.optional(),
+    k3d: z
+      .object({
+        args: z.array(z.string()).optional(),
+      })
+      .strict()
+      .optional(),
+  })
+  .strict();
+
+const ProfileConfigSchema = z
+  .object({
+    ports: PortsSchema.optional(),
+    hosts: z.record(z.string()).optional(),
+    urls: z.record(z.string()).optional(),
+    k3d: ProfileK3dSchema.optional(),
+    hooks: HooksSchema.optional(),
+    append: ProfileAppendSchema.optional(),
+  })
+  .strict();
+
 const SiloConfigSchema = z
   .object({
     version: z.literal(CONFIG_VERSION),
@@ -48,6 +84,7 @@ const SiloConfigSchema = z
     urls: z.record(z.string()).optional(),
     k3d: K3dSchema.optional(),
     hooks: HooksSchema.optional(),
+    profiles: z.record(ProfileConfigSchema).optional(),
   })
   .strict();
 
@@ -97,6 +134,7 @@ export const loadConfig = async (configPath: string): Promise<ResolvedConfig> =>
     urlOrder,
     k3d: parsed.k3d,
     hooks,
+    profiles: parsed.profiles,
     configPath: resolvedPath,
     projectRoot: configDir,
   };

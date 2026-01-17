@@ -40,6 +40,7 @@ export const resolveInstanceName = (params: {
 export const buildInstanceState = async (params: {
   config: ResolvedConfig;
   name: string;
+  profile: string | undefined;
   lockfile: Lockfile | null | undefined;
   force: boolean;
   createdAt?: string;
@@ -53,7 +54,7 @@ export const buildInstanceState = async (params: {
   urlOrder: string[];
   k3dArgs: string[];
 }> => {
-  const { config, name, lockfile, force, createdAt, onPortAllocation } = params;
+  const { config, name, profile, lockfile, force, createdAt, onPortAllocation } = params;
   const identityVars = buildIdentityVars(name, config.prefix);
 
   const { hosts, order: hostOrder } = resolveHosts({
@@ -88,6 +89,7 @@ export const buildInstanceState = async (params: {
 
   const state: InstanceState = {
     name,
+    ...(profile ? { profile } : {}),
     ports,
     identity,
     createdAt: createdAt ?? new Date().toISOString(),

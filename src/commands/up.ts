@@ -2,6 +2,7 @@ import { loadConfig } from "../core/config";
 import { buildInstanceState, resolveInstanceName } from "../core/instance";
 import { renderEnvFile, resolveEnvPath } from "../core/env";
 import { readLockfile, updateLockfile, writeLockfile } from "../core/lockfile";
+import { applyProfile, resolveProfileName } from "../core/profile";
 import { ensureToolsAvailable } from "../utils/validate";
 import { logger } from "../utils/logger";
 import { runHooks } from "../hooks/runner";
@@ -14,23 +15,13 @@ import type { PortAllocationEvent } from "../core/ports";
 
 export const up = async (
   nameArg: string | undefined,
-  options: { config: string; force: boolean }
+  options: { config: string; force: boolean; profile: string | undefined }
 ): Promise<void> => {
   logger.info("Loading config");
-  const config = await loadConfig(options.config);
-  logger.verbose(`Config path: ${config.configPath}`);
+  const baseConfig = await loadConfig(options.config);
+  logger.verbose(`Config path: ${baseConfig.configPath}`);
 
-  const tools = ["tilt"];
-  if (config.k3d?.enabled) {
-    tools.push("k3d");
-  }
-  if (config.k3d?.registry?.enabled) {
-    tools.push("kubectl");
-  }
-  logger.info(`Validating tools: ${tools.join(", ")}`);
-  await ensureToolsAvailable(tools);
-
-  const lockfile = await readLockfile(config.projectRoot);
+  const lockfile = await readLockfile(baseConfig.projectRoot);
 
   if (lockfile?.instance?.tiltPid && isPidRunning(lockfile.instance.tiltPid)) {
     const isTilt = await isTiltProcess(lockfile.instance.tiltPid);
@@ -42,7 +33,7 @@ export const up = async (
     }
   }
 
-  const externalTilt = await findTiltPidsInDir(config.projectRoot);
+  const externalTilt = await findTiltPidsInDir(baseConfig.projectRoot);
   const trackedPid = lockfile?.instance?.tiltPid;
   const external = externalTilt.filter((pid) => pid !== trackedPid);
   if (external.length > 0) {
@@ -51,6 +42,51 @@ export const up = async (
       "TILT_RUNNING"
     );
   }
+
+  const explicitProfile = options.profile ?? process.env.SILO_PROFILE;
+  const lockfileProfileForResolution =
+    options.force && !explicitProfile ? undefined : lockfile?.instance?.profile;
+
+  const { name: profileName, source: profileSource } = resolveProfileName({
+    profileFlag: options.profile,
+    envProfile: process.env.SILO_PROFILE,
+    lockfileProfile: lockfileProfileForResolution,
+    profiles: baseConfig.profiles,
+  });
+
+  const currentProfile = lockfile?.instance?.profile;
+  if (lockfile && currentProfile !== profileName) {
+    if (!options.force) {
+      const requested = profileName ?? "base";
+      const current = currentProfile ?? "base";
+      throw new SiloError(
+        `Profile change requires --force (current: ${current}, requested: ${requested})`,
+        "PROFILE_SWITCH"
+      );
+    }
+    if (currentProfile && !profileName) {
+      logger.info("Cleared profile, using base config");
+    }
+  }
+
+  if (profileSource === "lockfile" && profileName) {
+    logger.info(`Reusing profile '${profileName}' from lockfile`);
+  }
+
+  const config = profileName ? applyProfile(baseConfig, profileName) : baseConfig;
+  if (profileName) {
+    logger.info(`Profile: ${profileName}`);
+  }
+
+  const tools = ["tilt"];
+  if (config.k3d?.enabled) {
+    tools.push("k3d");
+  }
+  if (config.k3d?.registry?.enabled) {
+    tools.push("kubectl");
+  }
+  logger.info(`Validating tools: ${tools.join(", ")}`);
+  await ensureToolsAvailable(tools);
 
   const nameSource = nameArg
     ? "arg"
@@ -70,6 +106,7 @@ export const up = async (
     await buildInstanceState({
       config,
       name,
+      profile: profileName,
       lockfile,
       force: options.force,
       onPortAllocation: (event) => portEvents.push(event),

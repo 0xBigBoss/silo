@@ -14,7 +14,7 @@ export const buildTemplateVars = (params: {
   urls?: Record<string, string>;
 }): Record<string, string | number> => {
   const { identity, ports, urls } = params;
-  return {
+  const base = {
     name: identity.name,
     prefix: identity.prefix,
     ...buildIdentityEnvVars(identity),
@@ -23,6 +23,7 @@ export const buildTemplateVars = (params: {
     ...(identity.k3dClusterName ? { K3D_CLUSTER_NAME: identity.k3dClusterName } : {}),
     ...(identity.k3dRegistryName ? { K3D_REGISTRY_NAME: identity.k3dRegistryName } : {}),
     ...(identity.kubeconfigPath ? { KUBECONFIG: identity.kubeconfigPath } : {}),
-    ...(urls ?? {}),
   };
+
+  return urls ? { ...base, ...urls } : base;
 };

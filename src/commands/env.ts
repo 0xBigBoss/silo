@@ -2,14 +2,54 @@ import { loadConfig } from "../core/config";
 import { buildInstanceState, resolveInstanceName } from "../core/instance";
 import { renderEnvFile, resolveEnvPath } from "../core/env";
 import { readLockfile, writeLockfile } from "../core/lockfile";
+import { applyProfile, resolveProfileName } from "../core/profile";
 import { logger } from "../utils/logger";
+import { SiloError } from "../utils/errors";
 import type { PortAllocationEvent } from "../core/ports";
 
-export const env = async (nameArg: string | undefined, options: { config: string }) => {
+export const env = async (
+  nameArg: string | undefined,
+  options: { config: string; force: boolean; profile: string | undefined }
+) => {
   logger.info("Loading config");
-  const config = await loadConfig(options.config);
-  logger.verbose(`Config path: ${config.configPath}`);
-  const lockfile = await readLockfile(config.projectRoot);
+  const baseConfig = await loadConfig(options.config);
+  logger.verbose(`Config path: ${baseConfig.configPath}`);
+  const lockfile = await readLockfile(baseConfig.projectRoot);
+
+  const explicitProfile = options.profile ?? process.env.SILO_PROFILE;
+  const lockfileProfileForResolution =
+    options.force && !explicitProfile ? undefined : lockfile?.instance?.profile;
+
+  const { name: profileName, source: profileSource } = resolveProfileName({
+    profileFlag: options.profile,
+    envProfile: process.env.SILO_PROFILE,
+    lockfileProfile: lockfileProfileForResolution,
+    profiles: baseConfig.profiles,
+  });
+
+  const currentProfile = lockfile?.instance?.profile;
+  if (lockfile && currentProfile !== profileName) {
+    if (!options.force) {
+      const requested = profileName ?? "base";
+      const current = currentProfile ?? "base";
+      throw new SiloError(
+        `Profile change requires --force (current: ${current}, requested: ${requested})`,
+        "PROFILE_SWITCH"
+      );
+    }
+    if (currentProfile && !profileName) {
+      logger.info("Cleared profile, using base config");
+    }
+  }
+
+  if (profileSource === "lockfile" && profileName) {
+    logger.info(`Reusing profile '${profileName}' from lockfile`);
+  }
+
+  const config = profileName ? applyProfile(baseConfig, profileName) : baseConfig;
+  if (profileName) {
+    logger.info(`Profile: ${profileName}`);
+  }
 
   const nameSource = nameArg
     ? "arg"
@@ -29,8 +69,9 @@ export const env = async (nameArg: string | undefined, options: { config: string
   const { state, urls, hostOrder, portOrder, urlOrder } = await buildInstanceState({
     config,
     name,
+    profile: profileName,
     lockfile,
-    force: false,
+    force: options.force,
     onPortAllocation: (event) => portEvents.push(event),
   });
 

@@ -7,6 +7,7 @@ export interface SiloConfig {
   urls?: Record<string, string>;
   k3d?: K3dConfig;
   hooks?: LifecycleHooks;
+  profiles?: Record<string, ProfileConfig>;
 }
 
 export interface K3dConfig {
@@ -24,6 +25,22 @@ export interface LifecycleHooks {
   "post-down"?: string[];
 }
 
+export interface ProfileAppendConfig {
+  hooks?: Partial<LifecycleHooks>;
+  k3d?: {
+    args?: string[];
+  };
+}
+
+export interface ProfileConfig {
+  ports?: Record<string, number>;
+  hosts?: Record<string, string>;
+  urls?: Record<string, string>;
+  k3d?: Partial<K3dConfig>;
+  hooks?: Partial<LifecycleHooks>;
+  append?: ProfileAppendConfig;
+}
+
 export interface ResolvedConfig {
   version: 1;
   prefix: string;
@@ -36,6 +53,7 @@ export interface ResolvedConfig {
   urlOrder: string[];
   k3d: K3dConfig | undefined;
   hooks: LifecycleHooks;
+  profiles: Record<string, ProfileConfig> | undefined;
   configPath: string;
   projectRoot: string;
 }
@@ -55,6 +73,7 @@ export interface InstanceIdentity {
 
 export interface InstanceState {
   name: string;
+  profile?: string | undefined;
   ports: Record<string, number>;
   identity: InstanceIdentity;
   createdAt: string;

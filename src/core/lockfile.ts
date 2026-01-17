@@ -21,6 +21,7 @@ const IdentitySchema = z.object({
 
 const InstanceStateSchema = z.object({
   name: z.string(),
+  profile: z.string().optional(),
   ports: PortsSchema,
   identity: IdentitySchema,
   createdAt: z.string(),

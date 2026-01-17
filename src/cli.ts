@@ -13,6 +13,7 @@ Commands:
   down            Stop environment (stops Tilt, keeps k3d by default)
   status          Show current instance state
   env [name]      Generate env file only, don't start anything
+  profiles        List available profiles from silo.toml
 
 Arguments:
   [name]          Instance name (e.g., main, feature-x, dev)
@@ -30,11 +31,16 @@ Help:
 
 Command Options:
   up:
-    -f, --force   Regenerate ports even if lockfile exists
+    -f, --force      Regenerate ports even if lockfile exists
+    -p, --profile    Use named profile (overrides SILO_PROFILE env var)
 
   down:
     --delete-cluster   Delete k3d cluster (default: keep for faster iteration)
     --clean            Remove env file and lockfile
+
+  env:
+    -f, --force      Regenerate ports even if lockfile exists
+    -p, --profile    Use named profile for env generation
 `;
 
 const COMMAND_HELP: Record<string, string> = {
@@ -57,6 +63,7 @@ Arguments:
 
 Options:
   -f, --force     Regenerate ports even if lockfile exists
+  -p, --profile   Use named profile (overrides SILO_PROFILE env var)
   -c, --config    Path to config file (default: silo.toml)
   -v, --verbose   Show verbose output
   -h, --help      Show help
@@ -87,6 +94,17 @@ Generate env file only, don't start anything.
 
 Arguments:
   [name]          Instance name (e.g., main, feature-x, dev)
+
+Options:
+  -f, --force     Regenerate ports even if lockfile exists
+  -p, --profile   Use named profile for env generation
+  -c, --config    Path to config file (default: silo.toml)
+  -v, --verbose   Show verbose output
+  -h, --help      Show help
+`,
+  profiles: `silo profiles [options]
+
+List available profiles from silo.toml.
 
 Options:
   -c, --config    Path to config file (default: silo.toml)
@@ -130,6 +148,7 @@ Examples:
   silo down                     # Stop Tilt (keep k3d)
   silo down --delete-cluster    # Stop Tilt and delete k3d
   silo status                   # Show what's running
+  silo profiles                 # List available profiles
 `);
 };
 
@@ -141,6 +160,7 @@ const main = async (): Promise<void> => {
       force: { type: "boolean", short: "f", default: false },
       help: { type: "boolean", short: "h", default: false },
       verbose: { type: "boolean", short: "v", default: false },
+      profile: { type: "string", short: "p" },
       "delete-cluster": { type: "boolean", default: false },
       clean: { type: "boolean", default: false },
     },
@@ -183,6 +203,7 @@ const main = async (): Promise<void> => {
       await mod.up(args[0], {
         config: values.config,
         force: values.force,
+        profile: values.profile,
       });
       return;
     }
@@ -202,7 +223,16 @@ const main = async (): Promise<void> => {
     }
     case "env": {
       const mod = await import("./commands/env");
-      await mod.env(args[0], { config: values.config });
+      await mod.env(args[0], {
+        config: values.config,
+        force: values.force,
+        profile: values.profile,
+      });
+      return;
+    }
+    case "profiles": {
+      const mod = await import("./commands/profiles");
+      await mod.profiles({ config: values.config });
       return;
     }
     default:

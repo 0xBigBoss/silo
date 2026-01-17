@@ -1,6 +1,7 @@
 import { loadConfig } from "../core/config";
 import { resolveEnvPath } from "../core/env";
 import { readLockfile, updateLockfile } from "../core/lockfile";
+import { applyProfile } from "../core/profile";
 import { logger } from "../utils/logger";
 import { promises as fs } from "fs";
 import { runHooks } from "../hooks/runner";
@@ -19,12 +20,15 @@ export const down = async (options: {
   clean: boolean;
 }): Promise<void> => {
   logger.info("Loading config");
-  const config = await loadConfig(options.config);
-  logger.verbose(`Config path: ${config.configPath}`);
-  const lockfile = await readLockfile(config.projectRoot);
+  const baseConfig = await loadConfig(options.config);
+  logger.verbose(`Config path: ${baseConfig.configPath}`);
+  const lockfile = await readLockfile(baseConfig.projectRoot);
   if (!lockfile) {
     throw new SiloError("No lockfile found. Nothing to stop.", "LOCKFILE_MISSING");
   }
+
+  const profileName = lockfile.instance.profile;
+  const config = profileName ? applyProfile(baseConfig, profileName) : baseConfig;
 
   const templateVars = buildTemplateVars({
     identity: lockfile.instance.identity,
