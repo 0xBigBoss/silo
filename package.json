@@ -14,12 +14,17 @@
     "typecheck": "bun run tsc --noEmit",
     "test": "bun test",
     "build": "bun build --target=bun --outdir dist src/cli.ts",
-    "prepublishOnly": "bun run typecheck && bun run build"
+    "prepublishOnly": "bun run typecheck && bun run build",
+    "changeset": "changeset",
+    "version": "changeset version && bun run sync-versions",
+    "sync-versions": "bun run scripts/sync-versions.ts",
+    "release": "bun run build && changeset publish"
   },
   "dependencies": {
     "zod": "^3.24.1"
   },
   "devDependencies": {
+    "@changesets/cli": "^2.29.8",
     "@types/node": "^20.11.30",
     "bun-types": "^1.1.6",
     "jscpd": "^3.5.4",
@@ -31,6 +36,8 @@
   "files": [
     "dist",
     "docs",
+    ".claude-plugin",
+    "skills",
     "README.md",
     "LICENSE",
     "SPEC.md"
@@ -44,7 +51,9 @@
     "local-development",
     "ports",
     "isolation",
-    "bun"
+    "bun",
+    "claude-code",
+    "ai-agent"
   ],
   "repository": {
     "type": "git",
