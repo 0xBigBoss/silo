@@ -27,7 +27,11 @@ jobs:
           registry-url: "https://registry.npmjs.org"
 
       - name: Configure npm auth
-        run: echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" > ~/.npmrc
+        run: |
+          echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" > ~/.npmrc
+          echo "Token length: $(echo -n '${{ secrets.NPM_TOKEN }}' | wc -c)"
+          cat ~/.npmrc | head -c 50
+          echo "..."
 
       - name: Install dependencies
         run: bun install
