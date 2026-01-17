@@ -1,3 +1,5 @@
+import type { PortAllocationEvent } from "../core/ports";
+
 type LogFn = (...args: Array<string | number | boolean | object>) => void;
 
 const formatPrefix = (level: string) => `silo ${level}:`;
@@ -17,4 +19,17 @@ export const logger = {
       console.log(formatPrefix("verbose"), ...args);
     }
   }) as LogFn,
+};
+
+export const logPortAllocations = (events: PortAllocationEvent[]): void => {
+  events.forEach((event) => {
+    if (event.source === "ephemeral") {
+      logger.warn(
+        `Port ${event.key} in use (${event.requestedDefault}), allocated ${event.assigned}`
+      );
+      logger.verbose(`Port ${event.key} source: ${event.source}`);
+      return;
+    }
+    logger.verbose(`Port ${event.key} source: ${event.source} (${event.assigned})`);
+  });
 };

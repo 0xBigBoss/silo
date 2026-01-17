@@ -1,5 +1,7 @@
 import path from "path";
 import type { InstanceState, ResolvedConfig } from "./types";
+import { writeLockfile } from "./lockfile";
+import { logger } from "../utils/logger";
 
 const toEnvLine = (key: string, value: string | number): string =>
   `${key}=${String(value)}`;
@@ -42,7 +44,7 @@ export const buildEnvVars = (state: InstanceState, urls: Record<string, string>)
   return env;
 };
 
-export const renderEnvFile = (params: {
+const renderEnvFile = (params: {
   state: InstanceState;
   config: ResolvedConfig;
   urls: Record<string, string>;
@@ -118,3 +120,31 @@ export const renderEnvFile = (params: {
 
 export const resolveEnvPath = (config: ResolvedConfig): string =>
   path.resolve(config.projectRoot, config.output);
+
+export const writeEnvAndLockfile = async (params: {
+  state: InstanceState;
+  config: ResolvedConfig;
+  urls: Record<string, string>;
+  hostOrder: string[];
+  portOrder: string[];
+  urlOrder: string[];
+}): Promise<string> => {
+  const { state, config, urls, hostOrder, portOrder, urlOrder } = params;
+  const envPath = resolveEnvPath(config);
+  const envContent = renderEnvFile({
+    state,
+    config,
+    urls,
+    hostOrder,
+    portOrder,
+    urlOrder,
+  });
+
+  await Bun.write(envPath, envContent);
+  await writeLockfile(config.projectRoot, state);
+
+  logger.info(`Generated env file at ${envPath}`);
+  logger.info("Wrote lockfile");
+
+  return envPath;
+};

@@ -1,10 +1,10 @@
 import { loadConfig } from "../core/config";
 import { buildInstanceState, resolveInstanceName } from "../core/instance";
-import { renderEnvFile, resolveEnvPath } from "../core/env";
-import { readLockfile, updateLockfile, writeLockfile } from "../core/lockfile";
-import { applyProfile, resolveProfileName } from "../core/profile";
+import { writeEnvAndLockfile } from "../core/env";
+import { readLockfile, updateLockfile } from "../core/lockfile";
+import { resolveAndApplyProfile } from "../core/profile";
 import { ensureToolsAvailable } from "../utils/validate";
-import { logger } from "../utils/logger";
+import { logger, logPortAllocations } from "../utils/logger";
 import { runHooks } from "../hooks/runner";
 import { ensureCluster, writeKubeconfig } from "../backends/k3d";
 import { advertiseLocalRegistry } from "../backends/registry";
@@ -43,40 +43,12 @@ export const up = async (
     );
   }
 
-  const explicitProfile = options.profile ?? process.env.SILO_PROFILE;
-  const lockfileProfileForResolution =
-    options.force && !explicitProfile ? undefined : lockfile?.instance?.profile;
-
-  const { name: profileName, source: profileSource } = resolveProfileName({
+  const { config, profileName } = resolveAndApplyProfile({
+    baseConfig,
     profileFlag: options.profile,
-    envProfile: process.env.SILO_PROFILE,
-    lockfileProfile: lockfileProfileForResolution,
-    profiles: baseConfig.profiles,
+    lockfile,
+    force: options.force,
   });
-
-  const currentProfile = lockfile?.instance?.profile;
-  if (lockfile && currentProfile !== profileName) {
-    if (!options.force) {
-      const requested = profileName ?? "base";
-      const current = currentProfile ?? "base";
-      throw new SiloError(
-        `Profile change requires --force (current: ${current}, requested: ${requested})`,
-        "PROFILE_SWITCH"
-      );
-    }
-    if (currentProfile && !profileName) {
-      logger.info("Cleared profile, using base config");
-    }
-  }
-
-  if (profileSource === "lockfile" && profileName) {
-    logger.info(`Reusing profile '${profileName}' from lockfile`);
-  }
-
-  const config = profileName ? applyProfile(baseConfig, profileName) : baseConfig;
-  if (profileName) {
-    logger.info(`Profile: ${profileName}`);
-  }
 
   const tools = ["tilt"];
   if (config.k3d?.enabled) {
@@ -112,31 +84,9 @@ export const up = async (
       onPortAllocation: (event) => portEvents.push(event),
     });
 
-  portEvents.forEach((event) => {
-    if (event.source === "ephemeral") {
-      logger.warn(
-        `Port ${event.key} in use (${event.requestedDefault}), allocated ${event.assigned}`
-      );
-      logger.verbose(`Port ${event.key} source: ${event.source}`);
-      return;
-    }
-    logger.verbose(`Port ${event.key} source: ${event.source} (${event.assigned})`);
-  });
+  logPortAllocations(portEvents);
 
-  const envPath = resolveEnvPath(config);
-  const envContent = renderEnvFile({
-    state,
-    config,
-    urls,
-    hostOrder,
-    portOrder,
-    urlOrder,
-  });
-
-  await Bun.write(envPath, envContent);
-  await writeLockfile(config.projectRoot, state);
-  logger.info(`Generated env file at ${envPath}`);
-  logger.info("Wrote lockfile");
+  await writeEnvAndLockfile({ state, config, urls, hostOrder, portOrder, urlOrder });
 
   logger.info(`Running pre-up hooks (${config.hooks["pre-up"]?.length ?? 0})`);
   await runHooks({

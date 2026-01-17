@@ -1,14 +1,16 @@
 import type {
   K3dConfig,
   LifecycleHooks,
+  Lockfile,
   ProfileConfig,
   ResolvedConfig,
 } from "./types";
 import { SiloError } from "../utils/errors";
+import { logger } from "../utils/logger";
 
-export type ProfileSource = "flag" | "env" | "lockfile" | "none";
+type ProfileSource = "flag" | "env" | "lockfile" | "none";
 
-export interface ProfileResolution {
+interface ProfileResolution {
   name: string | undefined;
   source: ProfileSource;
 }
@@ -23,7 +25,7 @@ const normalizeProfileName = (value?: string): string | undefined => {
   return trimmed.length > 0 ? trimmed : undefined;
 };
 
-export const resolveProfileName = (params: {
+const resolveProfileName = (params: {
   profileFlag: string | undefined;
   envProfile: string | undefined;
   lockfileProfile: string | undefined;
@@ -55,6 +57,52 @@ export const resolveProfileName = (params: {
   }
 
   return { name, source };
+};
+
+export const resolveAndApplyProfile = (params: {
+  baseConfig: ResolvedConfig;
+  profileFlag: string | undefined;
+  lockfile: Lockfile | null;
+  force: boolean;
+}): { config: ResolvedConfig; profileName: string | undefined } => {
+  const { baseConfig, profileFlag, lockfile, force } = params;
+
+  const explicitProfile = profileFlag ?? process.env.SILO_PROFILE;
+  const lockfileProfileForResolution =
+    force && !explicitProfile ? undefined : lockfile?.instance?.profile;
+
+  const { name: profileName, source: profileSource } = resolveProfileName({
+    profileFlag,
+    envProfile: process.env.SILO_PROFILE,
+    lockfileProfile: lockfileProfileForResolution,
+    profiles: baseConfig.profiles,
+  });
+
+  const currentProfile = lockfile?.instance?.profile;
+  if (lockfile && currentProfile !== profileName) {
+    if (!force) {
+      const requested = profileName ?? "base";
+      const current = currentProfile ?? "base";
+      throw new SiloError(
+        `Profile change requires --force (current: ${current}, requested: ${requested})`,
+        "PROFILE_SWITCH"
+      );
+    }
+    if (currentProfile && !profileName) {
+      logger.info("Cleared profile, using base config");
+    }
+  }
+
+  if (profileSource === "lockfile" && profileName) {
+    logger.info(`Reusing profile '${profileName}' from lockfile`);
+  }
+
+  const config = profileName ? applyProfile(baseConfig, profileName) : baseConfig;
+  if (profileName) {
+    logger.info(`Profile: ${profileName}`);
+  }
+
+  return { config, profileName };
 };
 
 const mergeRecordWithOrder = <T>(
