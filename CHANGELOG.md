@@ -1,5 +1,11 @@
 # @0xbigboss/silo
 
+## 0.2.1
+
+### Patch Changes
+
+- Fix Claude Code plugin marketplace structure for proper installation
+
 ## 0.2.0
 
 ### Minor Changes
