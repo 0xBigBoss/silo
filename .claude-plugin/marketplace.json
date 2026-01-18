@@ -11,7 +11,7 @@
   "plugins": [
     {
       "name": "silo",
-      "source": ".",
+      "source": "./silo",
       "description": "CLI skill for managing isolated local development environments",
       "version": "0.2.0",
       "keywords": ["cli", "dev-environment", "tilt", "k3d", "kubernetes", "local-development"]

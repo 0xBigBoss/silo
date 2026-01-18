@@ -17,7 +17,7 @@ const packageJson = JSON.parse(
 const version = packageJson.version;
 
 // Sync plugin.json
-const pluginJsonPath = join(rootDir, ".claude-plugin/plugin.json");
+const pluginJsonPath = join(rootDir, ".claude-plugin/silo/plugin.json");
 const pluginJson = JSON.parse(readFileSync(pluginJsonPath, "utf-8"));
 
 if (pluginJson.version !== version) {
