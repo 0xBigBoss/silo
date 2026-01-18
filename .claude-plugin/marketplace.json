@@ -1,0 +1,20 @@
+{
+  "name": "0xbigboss-silo",
+  "owner": {
+    "name": "0xBigBoss",
+    "email": "github@0xbigboss.dev"
+  },
+  "metadata": {
+    "description": "Isolated local development environments for Tilt and k3d projects",
+    "version": "0.2.0"
+  },
+  "plugins": [
+    {
+      "name": "silo",
+      "source": ".",
+      "description": "CLI skill for managing isolated local development environments",
+      "version": "0.2.0",
+      "keywords": ["cli", "dev-environment", "tilt", "k3d", "kubernetes", "local-development"]
+    }
+  ]
+}
