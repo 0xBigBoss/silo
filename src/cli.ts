@@ -2,6 +2,8 @@
 import { parseArgs } from "util";
 import { SiloError } from "./utils/errors";
 import { setVerbose } from "./utils/logger";
+import { DOC_TOPICS } from "./commands/doc-topics";
+import { VERSION } from "./version";
 
 const GLOBAL_HELP = `silo <command> [options]
 
@@ -43,6 +45,10 @@ Command Options:
     -f, --force      Regenerate ports even if lockfile exists
     -p, --profile    Use named profile for env generation
 `;
+
+const DOC_TOPIC_LINES = Object.entries(DOC_TOPICS)
+  .map(([topic, entry]) => `  ${topic}  ${entry.description}`)
+  .join("\n");
 
 const COMMAND_HELP: Record<string, string> = {
   help: GLOBAL_HELP,
@@ -117,16 +123,11 @@ Options:
 Print bundled documentation.
 
 Topics:
-  config          silo.toml reference
-  profiles        Profile configuration
-  commands        CLI command reference
-  lockfile        Lockfile format and behavior
-  interpolation   Template variables and phases
-  ports           Port allocation and validation
-  k3d             k3d cluster integration
-  hooks           Lifecycle hooks
+${DOC_TOPIC_LINES}
 
 Options:
+  --list          Print topic keys (one per line)
+  --json          Print topics as JSON
   -v, --verbose   Show verbose output
   -h, --help      Show help
 `,
@@ -149,6 +150,9 @@ const parsePackageVersion = (value: unknown): string => {
 };
 
 const getVersion = async (): Promise<string> => {
+  if (VERSION && VERSION.length > 0) {
+    return VERSION;
+  }
   const packageJsonUrl = new URL("../package.json", import.meta.url);
   const file = Bun.file(packageJsonUrl);
   if (!(await file.exists())) {
@@ -203,6 +207,8 @@ const main = async (): Promise<void> => {
       help: { type: "boolean", short: "h", default: false },
       verbose: { type: "boolean", short: "v", default: false },
       profile: { type: "string", short: "p" },
+      list: { type: "boolean", default: false },
+      json: { type: "boolean", default: false },
       "delete-cluster": { type: "boolean", default: false },
       clean: { type: "boolean", default: false },
     },
@@ -237,7 +243,11 @@ const main = async (): Promise<void> => {
     }
     case "doc": {
       const mod = await import("./commands/doc");
-      await mod.doc(args[0]);
+      await mod.doc({
+        ...(args[0] !== undefined && { topic: args[0] }),
+        ...(values.list && { list: values.list }),
+        ...(values.json && { json: values.json }),
+      });
       return;
     }
     case "up": {

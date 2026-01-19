@@ -49,8 +49,18 @@ Topics currently include:
 - `lockfile`
 - `interpolation`
 - `ports`
+- `hosts`
+- `urls`
 - `k3d`
 - `hooks`
+- `logging`
+- `troubleshooting`
+- `tilt`
+
+Options:
+
+- `--list` Print topic keys (one per line)
+- `--json` Print topics as JSON
 
 ## up
 
@@ -123,3 +133,12 @@ silo version
 ```
 
 Prints the current CLI version in the format `silo vX.Y.Z`.
+
+## Behavioral Guarantees
+
+- Lockfile reuse: if `.silo.lock` exists and ports are free, silo reuses them
+  unless `--force` is used.
+- Profile switching: changing profiles on an existing instance requires
+  `--force`.
+- Port allocation order: ports are allocated in declaration order with
+  default-first, then ephemeral fallback.

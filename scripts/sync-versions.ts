@@ -4,7 +4,7 @@
  * Run after changeset version to keep plugin version in sync.
  */
 
-import { readFileSync, writeFileSync } from "fs";
+import { existsSync, readFileSync, writeFileSync } from "fs";
 import { dirname, join } from "path";
 import { fileURLToPath } from "url";
 
@@ -15,6 +15,19 @@ const packageJson = JSON.parse(
   readFileSync(join(rootDir, "package.json"), "utf-8")
 );
 const version = packageJson.version;
+
+// Sync src/version.ts
+const versionFilePath = join(rootDir, "src", "version.ts");
+const versionFileContents = `// Updated by scripts/sync-versions.ts\nexport const VERSION = "${version}";\n`;
+const existingVersionFile = existsSync(versionFilePath)
+  ? readFileSync(versionFilePath, "utf-8")
+  : "";
+if (existingVersionFile !== versionFileContents) {
+  writeFileSync(versionFilePath, versionFileContents);
+  console.log(`Synced src/version.ts to ${version}`);
+} else {
+  console.log(`src/version.ts already at ${version}`);
+}
 
 // Sync plugin.json
 const pluginJsonPath = join(rootDir, ".claude-plugin/silo/plugin.json");

@@ -1,20 +1,6 @@
 import path from "path";
 import { SiloError } from "../utils/errors";
-
-const TOPICS: Record<string, { file: string; description: string }> = {
-  config: { file: "silo-toml.md", description: "silo.toml reference" },
-  profiles: { file: "profiles.md", description: "Profile configuration" },
-  commands: { file: "commands.md", description: "CLI command reference" },
-  lockfile: { file: "lockfile.md", description: "Lockfile format and behavior" },
-  interpolation: { file: "interpolation.md", description: "Template variables and phases" },
-  ports: { file: "ports.md", description: "Port allocation and validation" },
-  k3d: { file: "k3d.md", description: "k3d cluster integration" },
-  hooks: { file: "hooks.md", description: "Lifecycle hooks" },
-};
-
-const TOPIC_ALIASES: Record<string, keyof typeof TOPICS> = {
-  "silo.toml": "config",
-};
+import { DOC_TOPICS, DOC_TOPIC_ALIASES } from "./doc-topics";
 
 const findDocPath = async (filename: string): Promise<string | null> => {
   const candidates = [
@@ -32,24 +18,48 @@ const findDocPath = async (filename: string): Promise<string | null> => {
   return null;
 };
 
+const listTopics = (): Array<{ topic: string; file: string; description: string }> =>
+  Object.entries(DOC_TOPICS).map(([topic, entry]) => ({
+    topic,
+    file: entry.file,
+    description: entry.description,
+  }));
+
 const printTopics = (): void => {
   console.log("Available docs:");
-  for (const [topic, entry] of Object.entries(TOPICS)) {
-    console.log(`  ${topic}  ${entry.description}`);
-  }
+  listTopics().forEach((topic) => {
+    console.log(`  ${topic.topic}  ${topic.description}`);
+  });
 };
 
-export const doc = async (topicArg: string | undefined): Promise<void> => {
-  if (!topicArg) {
+export const doc = async (params: {
+  topic?: string;
+  list?: boolean;
+  json?: boolean;
+}): Promise<void> => {
+  const { topic, list, json } = params;
+  if (json) {
+    console.log(JSON.stringify({ topics: listTopics() }, null, 2));
+    return;
+  }
+
+  if (list) {
+    listTopics().forEach((entry) => {
+      console.log(entry.topic);
+    });
+    return;
+  }
+
+  if (!topic) {
     printTopics();
     return;
   }
 
-  const topicKey = topicArg.toLowerCase();
-  const canonicalTopic = TOPIC_ALIASES[topicKey] ?? topicKey;
-  const entry = TOPICS[canonicalTopic];
+  const topicKey = topic.toLowerCase();
+  const canonicalTopic = DOC_TOPIC_ALIASES[topicKey] ?? topicKey;
+  const entry = DOC_TOPICS[canonicalTopic];
   if (!entry) {
-    throw new SiloError(`Unknown doc topic: ${topicArg}`, "DOC_NOT_FOUND");
+    throw new SiloError(`Unknown doc topic: ${topic}`, "DOC_NOT_FOUND");
   }
 
   const docPath = await findDocPath(entry.file);
