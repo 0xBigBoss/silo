@@ -119,6 +119,12 @@ Print bundled documentation.
 Topics:
   config          silo.toml reference
   profiles        Profile configuration
+  commands        CLI command reference
+  lockfile        Lockfile format and behavior
+  interpolation   Template variables and phases
+  ports           Port allocation and validation
+  k3d             k3d cluster integration
+  hooks           Lifecycle hooks
 
 Options:
   -v, --verbose   Show verbose output

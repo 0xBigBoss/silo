@@ -4,6 +4,12 @@ import { SiloError } from "../utils/errors";
 const TOPICS: Record<string, { file: string; description: string }> = {
   config: { file: "silo-toml.md", description: "silo.toml reference" },
   profiles: { file: "profiles.md", description: "Profile configuration" },
+  commands: { file: "commands.md", description: "CLI command reference" },
+  lockfile: { file: "lockfile.md", description: "Lockfile format and behavior" },
+  interpolation: { file: "interpolation.md", description: "Template variables and phases" },
+  ports: { file: "ports.md", description: "Port allocation and validation" },
+  k3d: { file: "k3d.md", description: "k3d cluster integration" },
+  hooks: { file: "hooks.md", description: "Lifecycle hooks" },
 };
 
 const TOPIC_ALIASES: Record<string, keyof typeof TOPICS> = {

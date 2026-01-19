@@ -1,5 +1,11 @@
 # @0xbigboss/silo
 
+## 0.2.3
+
+### Patch Changes
+
+- Add comprehensive documentation topics: commands, lockfile, interpolation, ports, k3d, hooks
+
 ## 0.2.2
 
 ### Patch Changes
