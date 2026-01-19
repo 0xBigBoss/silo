@@ -3,7 +3,11 @@ import { SiloError } from "../utils/errors";
 
 const TOPICS: Record<string, { file: string; description: string }> = {
   config: { file: "silo-toml.md", description: "silo.toml reference" },
-  "silo.toml": { file: "silo-toml.md", description: "silo.toml reference" },
+  profiles: { file: "profiles.md", description: "Profile configuration" },
+};
+
+const TOPIC_ALIASES: Record<string, keyof typeof TOPICS> = {
+  "silo.toml": "config",
 };
 
 const findDocPath = async (filename: string): Promise<string | null> => {
@@ -24,7 +28,9 @@ const findDocPath = async (filename: string): Promise<string | null> => {
 
 const printTopics = (): void => {
   console.log("Available docs:");
-  console.log("  config  silo.toml reference");
+  for (const [topic, entry] of Object.entries(TOPICS)) {
+    console.log(`  ${topic}  ${entry.description}`);
+  }
 };
 
 export const doc = async (topicArg: string | undefined): Promise<void> => {
@@ -34,7 +40,8 @@ export const doc = async (topicArg: string | undefined): Promise<void> => {
   }
 
   const topicKey = topicArg.toLowerCase();
-  const entry = TOPICS[topicKey];
+  const canonicalTopic = TOPIC_ALIASES[topicKey] ?? topicKey;
+  const entry = TOPICS[canonicalTopic];
   if (!entry) {
     throw new SiloError(`Unknown doc topic: ${topicArg}`, "DOC_NOT_FOUND");
   }

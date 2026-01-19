@@ -14,6 +14,7 @@ Commands:
   status          Show current instance state
   env [name]      Generate env file only, don't start anything
   profiles        List available profiles from silo.toml
+  version         Print silo version
 
 Arguments:
   [name]          Instance name (e.g., main, feature-x, dev)
@@ -117,11 +118,45 @@ Print bundled documentation.
 
 Topics:
   config          silo.toml reference
+  profiles        Profile configuration
 
 Options:
   -v, --verbose   Show verbose output
   -h, --help      Show help
 `,
+  version: `silo version
+
+Print the current silo version.
+`,
+};
+
+const parsePackageVersion = (value: unknown): string => {
+  if (!value || typeof value !== "object") {
+    throw new SiloError("Invalid package.json contents", "VERSION_NOT_FOUND");
+  }
+  const record = value as Record<string, unknown>;
+  const version = record.version;
+  if (typeof version !== "string" || version.length === 0) {
+    throw new SiloError("package.json version not found", "VERSION_NOT_FOUND");
+  }
+  return version;
+};
+
+const getVersion = async (): Promise<string> => {
+  const packageJsonUrl = new URL("../package.json", import.meta.url);
+  const file = Bun.file(packageJsonUrl);
+  if (!(await file.exists())) {
+    throw new SiloError("package.json not found", "VERSION_NOT_FOUND");
+  }
+  try {
+    const data = await file.json();
+    return parsePackageVersion(data);
+  } catch (error) {
+    if (error instanceof SiloError) {
+      throw error;
+    }
+    throw new SiloError("Failed to read package.json", "VERSION_NOT_FOUND");
+  }
 };
 
 const printHelpFor = (command?: string): void => {
@@ -149,6 +184,7 @@ Examples:
   silo down --delete-cluster    # Stop Tilt and delete k3d
   silo status                   # Show what's running
   silo profiles                 # List available profiles
+  silo version                  # Print silo version
 `);
 };
 
@@ -233,6 +269,11 @@ const main = async (): Promise<void> => {
     case "profiles": {
       const mod = await import("./commands/profiles");
       await mod.profiles({ config: values.config });
+      return;
+    }
+    case "version": {
+      const version = await getVersion();
+      console.log(`silo v${version}`);
       return;
     }
     default:

@@ -1,5 +1,11 @@
 # @0xbigboss/silo
 
+## 0.2.2
+
+### Patch Changes
+
+- Add version command and profiles documentation topic
+
 ## 0.2.1
 
 ### Patch Changes
