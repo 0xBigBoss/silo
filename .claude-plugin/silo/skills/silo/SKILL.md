@@ -24,7 +24,8 @@ silo down              # Stop Tilt (keeps k3d by default)
 silo status            # Show current instance state and active profile
 silo env [name]        # Generate env file only (don't start Tilt)
 silo profiles          # List available profiles from silo.toml
-silo doc [topic]       # Show bundled docs (e.g., config)
+silo doc [topic]       # Show bundled docs (see topics below)
+silo version           # Show CLI version
 silo help [command]    # Show help
 ```
 
@@ -164,8 +165,24 @@ app_host = os.getenv('APP_HOST', 'localhost')
 
 **Port conflicts**: silo auto-allocates from ephemeral range (49152-65535) when defaults are occupied.
 
+## Bundled Documentation
+
+Use `silo doc [topic]` to view detailed documentation:
+
+| Topic | Description |
+|-------|-------------|
+| `config` | silo.toml reference (all fields, examples) |
+| `profiles` | Profile configuration and override behavior |
+| `commands` | CLI command reference |
+| `lockfile` | Lockfile format and behavior |
+| `interpolation` | Template variables and resolution phases |
+| `ports` | Port allocation and validation rules |
+| `k3d` | k3d cluster integration settings |
+| `hooks` | Lifecycle hooks (pre-up, post-up, etc.) |
+
+Example: `silo doc profiles` shows profile syntax, merge semantics, and switching behavior.
+
 ## Reference
 
-- Config reference: `silo doc config`
 - Full spec: See `SPEC.md` in project root
 - Repository: https://github.com/0xBigBoss/silo

@@ -1,5 +1,11 @@
 # @0xbigboss/silo
 
+## 0.2.4
+
+### Patch Changes
+
+- Update skill documentation with all doc topics and version command
+
 ## 0.2.3
 
 ### Patch Changes
