@@ -1,5 +1,11 @@
 # @0xbigboss/silo
 
+## 0.3.2
+
+### Patch Changes
+
+- Clarify k3d agents and loadbalancer in embedded docs
+
 ## 0.3.1
 
 ### Patch Changes
