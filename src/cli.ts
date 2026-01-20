@@ -6,14 +6,14 @@ import { DOC_TOPICS } from "./commands/doc-topics";
 import { VERSION } from "./version";
 import { colors, isInteractive } from "./utils/colors";
 
-const VERSION_BANNER = `      __               ____  _ _
+const VERSION_SILO = `      __               ____  _ _
      /  \\             / ___|| (_) ___
     /____\\            \\___ \\| | |/ _ \\
     | [] |             ___) | | | (_) |
     |    |            |____/|_|_|\\___/
     |    |
-    |____|
-~~~~|____|~~~~~`;
+    |____|`;
+const VERSION_GROUND = `~~~~|____|~~~~~`;
 
 const GLOBAL_HELP = `silo <command> [options]
 
@@ -300,7 +300,8 @@ const main = async (): Promise<void> => {
     case "version": {
       const version = await getVersion();
       if (isInteractive()) {
-        console.log(colors.cyan(VERSION_BANNER));
+        console.log(colors.yellow(VERSION_SILO));
+        console.log(colors.green(VERSION_GROUND));
         console.log("");
         console.log(`${colors.bold("silo")} ${colors.green(`v${version}`)}`);
       } else {

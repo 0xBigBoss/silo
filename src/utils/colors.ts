@@ -6,8 +6,9 @@ const ansi = (code: string) => (text: string) =>
   isTTY ? `\x1b[${code}m${text}\x1b[0m` : text;
 
 export const colors = {
-  cyan: ansi("36"),
+  yellow: ansi("33"),
   green: ansi("32"),
+  cyan: ansi("36"),
   bold: ansi("1"),
   dim: ansi("2"),
 };
