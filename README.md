@@ -14,6 +14,15 @@ Isolated local development environments. silo solves instance isolation and k3d 
 npm i -g @0xbigboss/silo
 ```
 
+### Claude Code Skill
+
+Install the silo skill in [Claude Code](https://claude.ai/code) so your AI assistant knows how to use silo:
+
+```bash
+/plugin marketplace add 0xBigBoss/silo
+/plugin install silo@0xbigboss-silo
+```
+
 ## Quick start
 
 ```bash
@@ -36,7 +45,9 @@ silo up [name]       # Start environment (creates k3d if needed, starts Tilt)
 silo down            # Stop environment (stops Tilt, keeps k3d by default)
 silo status          # Show current instance state
 silo env [name]      # Generate env file only, don't start anything
-silo doc config      # Print silo.toml reference
+silo profiles        # List available profiles
+silo doc [topic]     # Print bundled docs (config, profiles, k3d, hooks, etc.)
+silo version         # Print version
 ```
 
 ## Configuration
