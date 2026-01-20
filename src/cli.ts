@@ -4,6 +4,16 @@ import { SiloError } from "./utils/errors";
 import { setVerbose } from "./utils/logger";
 import { DOC_TOPICS } from "./commands/doc-topics";
 import { VERSION } from "./version";
+import { colors, isInteractive } from "./utils/colors";
+
+const VERSION_BANNER = `      __               ____  _ _
+     /  \\             / ___|| (_) ___
+    /____\\            \\___ \\| | |/ _ \\
+    | [] |             ___) | | | (_) |
+    |    |            |____/|_|_|\\___/
+    |    |
+    |____|
+~~~~|____|~~~~~`;
 
 const GLOBAL_HELP = `silo <command> [options]
 
@@ -289,7 +299,13 @@ const main = async (): Promise<void> => {
     }
     case "version": {
       const version = await getVersion();
-      console.log(`silo v${version}`);
+      if (isInteractive()) {
+        console.log(colors.cyan(VERSION_BANNER));
+        console.log("");
+        console.log(`${colors.bold("silo")} ${colors.green(`v${version}`)}`);
+      } else {
+        console.log(`silo v${version}`);
+      }
       return;
     }
     default:
