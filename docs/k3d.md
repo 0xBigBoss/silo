@@ -13,7 +13,7 @@ silo doc k3d
 [k3d]
 enabled = true
 args = [
-  "--agents=2",
+  # Route host:8080 → cluster ingress port 80 via the k3d loadbalancer
   "--port=8080:80@loadbalancer",
 ]
 

@@ -50,7 +50,8 @@ ADMIN_URL = "http://${ADMIN_HOST}:${ADMIN_PORT}"
 [k3d]
 enabled = true
 args = [
-  "--agents=2",
+  # "--agents=2",  # Optional: adds worker nodes for multi-node testing
+  # Route host ports to cluster ingress via the k3d loadbalancer
   "--port=8080:80@loadbalancer",
   "--port=8443:443@loadbalancer",
 ]
@@ -120,13 +121,15 @@ Enable k3d integration to create/delete a cluster as part of `silo up/down`.
 [k3d]
 enabled = true
 args = [
-  "--agents=2",
   "--port=8080:80@loadbalancer",
 ]
 
 [k3d.registry]
 enabled = true
 ```
+
+The loadbalancer routes traffic from your host into the cluster. Without it, you'd
+need `kubectl port-forward` for every service.
 
 Notes:
 - Registry port is allocated via `ports.K3D_REGISTRY_PORT` (default: 5000).
