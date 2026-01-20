@@ -20,7 +20,7 @@ Install the silo skill in [Claude Code](https://claude.ai/code) so your AI assis
 
 ```bash
 /plugin marketplace add 0xBigBoss/silo
-/plugin install silo@0xbigboss-silo
+/plugin install silo@0xBigBoss-silo
 ```
 
 ## Quick start
