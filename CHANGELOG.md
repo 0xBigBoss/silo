@@ -1,5 +1,11 @@
 # @0xbigboss/silo
 
+## 0.3.1
+
+### Patch Changes
+
+- Add colored ASCII art to version command (yellow silo, green ground)
+
 ## 0.3.0
 
 ### Minor Changes
