@@ -1,5 +1,13 @@
 # @0xbigboss/silo
 
+## 0.4.0
+
+### Minor Changes
+
+- d0ef21d: Add support for `random` or `0` port values to always allocate from the ephemeral range (49152-65535), while still reusing lockfile ports across restarts.
+
+  Fix kubeconfig corruption when k3d outputs debug lines with ANSI escape sequences to stdout.
+
 ## 0.3.3
 
 ### Patch Changes
