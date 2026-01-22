@@ -2,6 +2,7 @@
   "entry": ["src/cli.ts"],
   "project": ["src/**/*.ts"],
   "ignore": ["example/**"],
+  "ignoreBinaries": ["changeset"],
   "ignoreIssues": {
     "src/core/interpolate.ts": ["types"],
     "src/core/lockfile.ts": ["exports"],
