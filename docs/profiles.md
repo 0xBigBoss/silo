@@ -80,4 +80,4 @@ silo up --profile devnet --force
 - Unknown profiles are errors.
 - Using `--profile` when `[profiles]` is missing is an error.
 - Profile-specific ports still follow normal allocation rules (defaults first,
-  then ephemeral if occupied).
+  then ephemeral if occupied, or `random`/`0` to always use ephemeral).

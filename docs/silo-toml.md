@@ -32,6 +32,7 @@ REDIS_PORT = 6379
 API_PORT = 8080
 WEB_PORT = 3000
 ADMIN_PORT = 3001
+METRICS_PORT = "random"
 TILT_PORT = 10350
 K3D_REGISTRY_PORT = 5000  # Only used if k3d.registry.enabled
 
@@ -72,6 +73,7 @@ post-down = []
 - `prefix` (optional): Resource naming prefix. Default: `localnet`.
 - `output` (optional): Env file path. Default: `.localnet.env`.
 - `ports` (required): Map of port names to default values (at least one entry).
+  Use `random` or `0` to always allocate from the ephemeral range.
 - `hosts` (optional): Hostname templates. Default: `APP_HOST = "${name}.localhost"`.
 - `urls` (optional): URL templates. Default: empty.
 - `k3d` (optional): k3d cluster integration settings.
@@ -82,12 +84,15 @@ post-down = []
 Ports are allocated in declaration order. For each port key:
 
 1. If a lockfile exists and that port is free, it is reused.
-2. Otherwise, the configured default is tried.
-3. If occupied, the next free ephemeral port (49152-65535) is allocated.
+2. If the configured value is `random`/`0`, the next free ephemeral port
+   (49152-65535) is allocated.
+3. Otherwise, the configured default is tried. If occupied, the next free
+   ephemeral port (49152-65535) is allocated.
 
 Rules:
 - Ports must be within 1-65535.
 - Duplicate defaults are allowed; the first gets the default, the second gets an ephemeral port.
+- `random`/`0` skips the default check and always uses an ephemeral port.
 
 ## Hosts
 

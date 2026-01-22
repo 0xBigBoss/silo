@@ -256,7 +256,7 @@ interface SiloConfig {
   version: 1;
   prefix?: string; // Default: 'localnet'
   output?: string; // Default: '.localnet.env'
-  ports: Record<string, number>; // Required: at least one port
+  ports: Record<string, number | "random">; // Required: at least one port (0 allowed as alias for "random")
   hosts?: Record<string, string>; // Default: { APP_HOST: '${name}.localhost' }
   urls?: Record<string, string>; // Optional: omit if no derived URLs needed
   k3d?: K3dConfig;
@@ -291,7 +291,7 @@ interface LifecycleHooks {
 // Profile overrides - can override any config section
 // Values are merged with base config (profile wins on conflict)
 interface ProfileConfig {
-  ports?: Record<string, number>; // Override port defaults
+  ports?: Record<string, number | "random">; // Override port defaults (0 allowed as alias for "random")
   hosts?: Record<string, string>; // Override host templates
   urls?: Record<string, string>; // Override/add URL templates
   k3d?: Partial<K3dConfig>; // Override k3d settings
@@ -570,15 +570,16 @@ silo up --profile devnet --force
 
 When a profile overrides ports, those ports go through normal allocation:
 
-1. Try profile's port value as default
-2. Fall back to ephemeral range if occupied
-3. Lockfile stores final allocated ports (not profile defaults)
+1. If profile's value is `random`, allocate from ephemeral range
+2. Otherwise, try profile's port value as default
+3. Fall back to ephemeral range if occupied
+4. Lockfile stores final allocated ports (not profile defaults)
 
 This ensures isolation even when profiles specify the same port defaults.
 
 ## Port Allocation Strategy
 
-**Default-first**: Try the configured default port. Only allocate from ephemeral range (49152-65535) if the default is occupied.
+**Default-first**: Try the configured default port. Only allocate from ephemeral range (49152-65535) if the default is occupied. Use `random`/`0` to skip defaults and always allocate from the ephemeral range.
 
 ### Allocation Algorithm
 
@@ -586,6 +587,8 @@ This ensures isolation even when profiles specify the same port defaults.
 for each port_key in config.ports (in declaration order):
   if lockfile exists AND lockfile.ports[port_key] is free:
     use lockfile.ports[port_key]
+  else if config.ports[port_key] == "random":
+    allocate next free port from ephemeral range (49152-65535)
   else if config.ports[port_key] (default) is free:
     use config.ports[port_key]
   else:
@@ -597,7 +600,7 @@ for each port_key in config.ports (in declaration order):
 ### Port Validation Rules
 
 - **Duplicate defaults**: If two ports have the same default (e.g., both 8080), second one gets ephemeral
-- **Invalid range**: Ports must be 1-65535; values outside this range are errors
+- **Invalid range**: Ports must be 1-65535 (or `random`/`0`); values outside this range are errors
 - **Availability check**: TCP bind test with 100ms timeout (for CI compatibility)
 - **IPv4 only**: Bind to `0.0.0.0` to avoid IPv6 dual-stack complications
 - **Deterministic order**: Ports allocated in config declaration order for reproducibility

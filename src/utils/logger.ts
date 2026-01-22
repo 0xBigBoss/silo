@@ -24,8 +24,15 @@ export const logger = {
 export const logPortAllocations = (events: PortAllocationEvent[]): void => {
   events.forEach((event) => {
     if (event.source === "ephemeral") {
-      logger.warn(
-        `Port ${event.key} in use (${event.requestedDefault}), allocated ${event.assigned}`
+      if (event.requestedDefault !== "random") {
+        logger.warn(
+          `Port ${event.key} in use (${event.requestedDefault}), allocated ${event.assigned}`
+        );
+        logger.verbose(`Port ${event.key} source: ${event.source}`);
+        return;
+      }
+      logger.verbose(
+        `Port ${event.key} allocated from ephemeral range (${event.assigned})`
       );
       logger.verbose(`Port ${event.key} source: ${event.source}`);
       return;

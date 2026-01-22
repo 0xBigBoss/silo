@@ -141,4 +141,4 @@ Prints the current CLI version in the format `silo vX.Y.Z`.
 - Profile switching: changing profiles on an existing instance requires
   `--force`.
 - Port allocation order: ports are allocated in declaration order with
-  default-first, then ephemeral fallback.
+  default-first, then ephemeral fallback (use `random`/`0` to skip defaults).

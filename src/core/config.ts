@@ -10,8 +10,13 @@ import {
 import type { LifecycleHooks, ResolvedConfig, SiloConfig } from "./types";
 import { SiloError } from "../utils/errors";
 
+const PortValueSchema = z.preprocess(
+  (value) => (value === 0 ? "random" : value),
+  z.union([z.number().int().min(1).max(65535), z.literal("random")])
+);
+
 const PortsSchema = z
-  .record(z.number().int().min(1).max(65535))
+  .record(PortValueSchema)
   .refine((ports) => Object.keys(ports).length > 0, {
     message: "ports must define at least one entry",
   });

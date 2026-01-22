@@ -1,8 +1,10 @@
+export type PortConfigValue = number | "random";
+
 export interface SiloConfig {
   version: 1;
   prefix?: string;
   output?: string;
-  ports: Record<string, number>;
+  ports: Record<string, PortConfigValue>;
   hosts?: Record<string, string>;
   urls?: Record<string, string>;
   k3d?: K3dConfig;
@@ -33,7 +35,7 @@ export interface ProfileAppendConfig {
 }
 
 export interface ProfileConfig {
-  ports?: Record<string, number>;
+  ports?: Record<string, PortConfigValue>;
   hosts?: Record<string, string>;
   urls?: Record<string, string>;
   k3d?: Partial<K3dConfig>;
@@ -45,7 +47,7 @@ export interface ResolvedConfig {
   version: 1;
   prefix: string;
   output: string;
-  ports: Record<string, number>;
+  ports: Record<string, PortConfigValue>;
   portOrder: string[];
   hosts: Record<string, string>;
   hostOrder: string[];
