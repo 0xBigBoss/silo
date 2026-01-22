@@ -13,6 +13,7 @@ dist/
 .env.*
 .localnet.env
 .silo.lock
+.envrc.private
 
 # IDE
 .idea/
@@ -23,3 +24,4 @@ dist/
 # OS
 .DS_Store
 Thumbs.db
+
