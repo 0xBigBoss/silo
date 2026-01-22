@@ -69,6 +69,33 @@ export const deleteCluster = async (clusterName: string, cwd: string): Promise<v
   });
 };
 
+/**
+ * Strips ANSI escape sequences and debug output lines from k3d output.
+ * k3d may write debug lines (e.g., DEBU[0000]) to stdout with ANSI colors.
+ */
+export const stripDebugOutput = (output: string): string => {
+  // ANSI escape sequence pattern: ESC[ followed by parameters and command
+  // oxlint-disable-next-line no-control-regex -- intentionally matching ANSI escapes
+  const ansiPattern = /\x1b\[[0-9;]*[a-zA-Z]/g;
+
+  return output
+    .split("\n")
+    .filter((line) => {
+      // Skip lines containing ANSI escape sequences
+      if (ansiPattern.test(line)) {
+        return false;
+      }
+      // Reset regex state for next test
+      ansiPattern.lastIndex = 0;
+      // Skip debug/info/warn log lines (DEBU, INFO, WARN patterns from logrus)
+      if (/^(DEBU|INFO|WARN|ERRO)\[/.test(line)) {
+        return false;
+      }
+      return true;
+    })
+    .join("\n");
+};
+
 export const writeKubeconfig = async (
   clusterName: string,
   kubeconfigPath: string,
@@ -88,5 +115,6 @@ export const writeKubeconfig = async (
   const dir = path.dirname(kubeconfigPath);
   await fs.mkdir(dir, { recursive: true });
 
-  await Bun.write(kubeconfigPath, result.stdout);
+  const cleanYaml = stripDebugOutput(result.stdout);
+  await Bun.write(kubeconfigPath, cleanYaml);
 };
