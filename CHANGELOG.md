@@ -1,5 +1,11 @@
 # @0xbigboss/silo
 
+## 0.3.3
+
+### Patch Changes
+
+- Fix knip configuration to ignore changeset binary
+
 ## 0.3.2
 
 ### Patch Changes
