@@ -9,7 +9,7 @@ import type { PortConfigValue } from "./types";
 
 const isPortInRange = (port: number): boolean => port >= 1 && port <= 65535;
 
-export type PortCheckFn = (port: number) => Promise<boolean>;
+type PortCheckFn = (port: number) => Promise<boolean>;
 
 const checkPortFree: PortCheckFn = async (port: number): Promise<boolean> => {
   const attempt = async (): Promise<boolean> => {

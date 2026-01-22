@@ -75,8 +75,9 @@ export const deleteCluster = async (clusterName: string, cwd: string): Promise<v
  */
 export const stripDebugOutput = (output: string): string => {
   // ANSI escape sequence pattern: ESC[ followed by parameters and command
+  // No 'g' flag - we only need to detect presence, not find all matches
   // oxlint-disable-next-line no-control-regex -- intentionally matching ANSI escapes
-  const ansiPattern = /\x1b\[[0-9;]*[a-zA-Z]/g;
+  const ansiPattern = /\x1b\[[0-9;]*[a-zA-Z]/;
 
   return output
     .split("\n")
@@ -85,8 +86,6 @@ export const stripDebugOutput = (output: string): string => {
       if (ansiPattern.test(line)) {
         return false;
       }
-      // Reset regex state for next test
-      ansiPattern.lastIndex = 0;
       // Skip debug/info/warn log lines (DEBU, INFO, WARN patterns from logrus)
       if (/^(DEBU|INFO|WARN|ERRO)\[/.test(line)) {
         return false;
