@@ -1,5 +1,17 @@
 # @0xbigboss/silo
 
+## 0.4.1
+
+### Patch Changes
+
+- fix(k3d): shorten cluster names to stay within 32-char limit
+
+  k3d cluster names cannot exceed 32 characters. When `{prefix}-{name}` exceeds this limit, silo now shortens the name using a deterministic format that preserves uniqueness.
+
+  fix(k3d): reconcile registry port drift between lockfile and actual
+
+  When reusing an existing k3d cluster, the allocated registry port in the lockfile may differ from the actual port bound by Docker. Silo now queries the actual registry port via `docker port` and updates the lockfile if drift is detected.
+
 ## 0.4.0
 
 ### Minor Changes

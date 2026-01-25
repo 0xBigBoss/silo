@@ -4,7 +4,7 @@ import { runCommand } from "../utils/exec";
 
 const isPortInRange = (port: number): boolean => port >= 1 && port <= 65535;
 
-export const parseDockerPortOutput = (output: string): number | null => {
+const parseDockerPortOutput = (output: string): number | null => {
   const lines = output
     .split("\n")
     .map((line) => line.trim())
