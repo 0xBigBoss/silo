@@ -1,13 +1,15 @@
 import { loadConfig } from "../core/config";
 import { buildInstanceState, resolveInstanceName } from "../core/instance";
-import { writeEnvAndLockfile } from "../core/env";
+import { buildEnvVars, writeEnvAndLockfile } from "../core/env";
 import { readLockfile, updateLockfile } from "../core/lockfile";
 import { resolveAndApplyProfile } from "../core/profile";
+import { applyRegistryPortOverride } from "../core/registry";
 import { ensureToolsAvailable } from "../utils/validate";
 import { logger, logPortAllocations } from "../utils/logger";
 import { runHooks } from "../hooks/runner";
 import { ensureCluster, writeKubeconfig } from "../backends/k3d";
 import { advertiseLocalRegistry } from "../backends/registry";
+import { resolveRegistryHostPort } from "../backends/registry-port";
 import { startTilt } from "../backends/tilt";
 import { findTiltPidsInDir, isPidRunning, isTiltProcess } from "../utils/process";
 import { SiloError } from "../utils/errors";
@@ -55,7 +57,7 @@ export const up = async (
     tools.push("k3d");
   }
   if (config.k3d?.registry?.enabled) {
-    tools.push("kubectl");
+    tools.push("kubectl", "docker");
   }
   logger.info(`Validating tools: ${tools.join(", ")}`);
   await ensureToolsAvailable(tools);
@@ -86,53 +88,94 @@ export const up = async (
 
   logPortAllocations(portEvents);
 
-  await writeEnvAndLockfile({ state, config, urls, hostOrder, portOrder, urlOrder });
+  let currentState = state;
+  let currentUrls = urls;
+  let currentEnvVars = envVars;
+
+  await writeEnvAndLockfile({
+    state: currentState,
+    config,
+    urls: currentUrls,
+    hostOrder,
+    portOrder,
+    urlOrder,
+  });
 
   logger.info(`Running pre-up hooks (${config.hooks["pre-up"]?.length ?? 0})`);
   await runHooks({
     hooks: config.hooks["pre-up"],
-    env: envVars,
+    env: currentEnvVars,
     cwd: config.projectRoot,
     phase: "pre-up",
   });
 
-  if (config.k3d?.enabled && state.identity.k3dClusterName) {
-    const registryName = state.identity.k3dRegistryName;
-    logger.info(`Ensuring k3d cluster '${state.identity.k3dClusterName}'`);
+  if (config.k3d?.enabled && currentState.identity.k3dClusterName) {
+    const registryName = currentState.identity.k3dRegistryName;
+    logger.info(`Ensuring k3d cluster '${currentState.identity.k3dClusterName}'`);
     const { created } = await ensureCluster({
-      clusterName: state.identity.k3dClusterName,
+      clusterName: currentState.identity.k3dClusterName,
       registryName,
       args: k3dArgs,
       cwd: config.projectRoot,
     });
 
-    state.k3dClusterCreated = true;
+    currentState = { ...currentState, k3dClusterCreated: true };
 
-    if (state.identity.kubeconfigPath) {
+    if (currentState.identity.kubeconfigPath) {
       logger.info(`Writing kubeconfig`);
       await writeKubeconfig(
-        state.identity.k3dClusterName,
-        state.identity.kubeconfigPath,
+        currentState.identity.k3dClusterName!,
+        currentState.identity.kubeconfigPath,
         config.projectRoot
       );
     }
 
-    if (config.k3d?.registry?.enabled && state.identity.k3dRegistryName) {
-      if (!state.identity.kubeconfigPath) {
+    if (config.k3d?.registry?.enabled && registryName) {
+      const actualPort = await resolveRegistryHostPort({
+        registryName,
+        cwd: config.projectRoot,
+      });
+      const { changed, state: reconciledState, urls: reconciledUrls } =
+        applyRegistryPortOverride({
+          state: currentState,
+          config,
+          actualPort,
+        });
+      if (changed) {
+        const previousPort = currentState.ports.K3D_REGISTRY_PORT;
+        logger.warn(
+          `Registry port drift detected (requested ${previousPort}, actual ${actualPort}). Updating lockfile.`
+        );
+        currentState = reconciledState;
+        currentUrls = reconciledUrls;
+        currentEnvVars = buildEnvVars(currentState, currentUrls);
+        await writeEnvAndLockfile({
+          state: currentState,
+          config,
+          urls: currentUrls,
+          hostOrder,
+          portOrder,
+          urlOrder,
+        });
+      }
+    }
+
+    if (config.k3d?.registry?.enabled && currentState.identity.k3dRegistryName) {
+      if (!currentState.identity.kubeconfigPath) {
         throw new SiloError("Kubeconfig path missing for registry advertisement", "INVALID_STATE");
       }
-      const registryPort = state.ports.K3D_REGISTRY_PORT;
+      const registryPort = currentState.ports.K3D_REGISTRY_PORT;
       if (!registryPort) {
         throw new SiloError("K3D_REGISTRY_PORT missing for registry advertisement", "INVALID_STATE");
       }
       const registryHost = `localhost:${registryPort}`;
-      const registryHostFromCluster = `${state.identity.composeName}-registry.localhost:5000`;
+      const registryHostFromCluster = `${currentState.identity.composeName}-registry.localhost:5000`;
       logger.info("Advertising registry via ConfigMap");
       await advertiseLocalRegistry({
         registryHost,
         registryHostFromContainerRuntime: registryHostFromCluster,
         registryHostFromClusterNetwork: registryHostFromCluster,
-        kubeconfigPath: state.identity.kubeconfigPath,
+        kubeconfigPath: currentState.identity.kubeconfigPath,
         cwd: config.projectRoot,
       });
     }
@@ -144,21 +187,21 @@ export const up = async (
 
     logger.info(
       created
-        ? `Created k3d cluster '${state.identity.k3dClusterName}'`
-        : `Reusing k3d cluster '${state.identity.k3dClusterName}'`
+        ? `Created k3d cluster '${currentState.identity.k3dClusterName}'`
+        : `Reusing k3d cluster '${currentState.identity.k3dClusterName}'`
     );
   }
 
   logger.info(`Running post-up hooks (${config.hooks["post-up"]?.length ?? 0})`);
   await runHooks({
     hooks: config.hooks["post-up"],
-    env: envVars,
+    env: currentEnvVars,
     cwd: config.projectRoot,
     phase: "post-up",
   });
 
   logger.info("Starting Tilt");
-  const tiltProc = startTilt({ cwd: config.projectRoot, env: envVars });
+  const tiltProc = startTilt({ cwd: config.projectRoot, env: currentEnvVars });
   await updateLockfile(config.projectRoot, (current) => ({
     ...current.instance,
     tiltPid: tiltProc.pid,
