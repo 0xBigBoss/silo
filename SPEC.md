@@ -313,7 +313,7 @@ interface InstanceIdentity {
   volumePrefix: string; // Docker volume prefix
   containerPrefix: string; // Container name prefix
   hosts: Record<string, string>; // Resolved hosts including built-in TILT_HOST
-  k3dClusterName?: string; // K3d cluster name if k3d enabled
+  k3dClusterName?: string; // K3d cluster name if k3d enabled (<=32 chars, may be shortened)
   k3dRegistryName?: string; // K3d registry name if k3d enabled
   kubeconfigPath?: string; // Path to kubeconfig for this instance
 }
@@ -882,6 +882,18 @@ silo calls k3d directly (not ctlptl). Instance isolation includes:
 - **Cluster name**: `{prefix}-{name}` (e.g., `localnet-feature-x`)
 - **Registry**: `{prefix}-{name}-registry.localhost:{port}`
 - **Kubeconfig**: Separate file per instance at `~/.kube/{prefix}-{name}`
+
+If `{prefix}-{name}` exceeds 32 characters, silo shortens the k3d cluster name
+to stay within the limit while preserving uniqueness. The format becomes:
+
+```
+{prefixPart}-{hash}-{suffix}
+```
+
+- `hash` is the first 8 hex chars of a SHA-256 of the full name
+- `suffix` is the last 6 chars of the final dash-delimited segment
+
+The shortened name is used for the cluster, registry, and kubeconfig path.
 
 Creation command (assembled from config + allocated ports):
 
