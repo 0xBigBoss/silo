@@ -20,8 +20,14 @@ silo doc tilt
 tilt up
 ```
 
-silo passes all generated env vars to Tilt. The process runs in the same
-terminal, and `Ctrl+C` stops Tilt.
+silo passes all generated env vars to Tilt, plus these markers so the Tiltfile
+can detect a silo-managed run:
+
+- `SILO_ACTIVE=1`
+- `SILO_WORKSPACE=<workspace name>`
+- `SILO_ENV_FILE=<absolute path to generated env file>`
+
+The process runs in the same terminal, and `Ctrl+C` stops Tilt.
 
 ## Shutdown
 
@@ -33,3 +39,24 @@ PID if still running.
 silo writes an env file and also exports the same vars when running Tilt. Your
 Tiltfile can read the file directly (for example with a dotenv extension) or
 use the process environment.
+
+## Silo Requirement (Tilt Extension)
+
+If your Tiltfile must only run under `silo up`, you can load the bundled
+side-effect extension and enforce it with one line.
+
+Local (bundled with this repo):
+
+```
+load('./tilt-extensions/silo/require/Tiltfile', 'SILO_REQUIRE')
+```
+
+From a GitHub-hosted extension repo:
+
+```
+v1alpha1.extension_repo(name='default', url='https://github.com/<org>/<tilt-extensions-repo>')
+load('ext://silo/require', 'SILO_REQUIRE')
+```
+
+If the extension is published to the default Tilt extensions repo, you can
+skip `extension_repo` and just use the `load('ext://...')` line.

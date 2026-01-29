@@ -1,0 +1,21 @@
+# Silo Tilt extension
+# Usage:
+#   load('./tilt-extensions/silo/Tiltfile', 'require_silo')
+#   require_silo()
+
+def _normalize_bool(value):
+    if value == None:
+        return False
+    text = str(value).strip().lower()
+    return text in ['1', 'true', 'yes', 'on']
+
+
+def is_silo_active():
+    return _normalize_bool(os.getenv('SILO_ACTIVE'))
+
+
+def require_silo(message=None):
+    if is_silo_active():
+        return
+    default_message = 'This Tiltfile must be run via `silo up` (SILO_ACTIVE not set).'
+    fail(message or default_message)

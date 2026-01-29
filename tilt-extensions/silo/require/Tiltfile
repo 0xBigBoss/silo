@@ -1,0 +1,7 @@
+# Side-effect extension: fails immediately unless running under silo.
+load('../Tiltfile', 'require_silo')
+
+require_silo()
+
+# Dummy symbol for load() signature compatibility.
+SILO_REQUIRE = True

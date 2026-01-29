@@ -60,6 +60,14 @@ silo doc config
 
 You can also browse `SPEC.md` for a detailed specification.
 
+## Child process environment
+
+When silo launches child processes (Tilt, hooks, k3d, kubectl), it injects:
+
+- `SILO_ACTIVE=1`
+- `SILO_WORKSPACE=<workspace name>`
+- `SILO_ENV_FILE=<absolute path to generated env file>`
+
 ## License
 
 MIT

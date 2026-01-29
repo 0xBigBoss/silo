@@ -382,6 +382,34 @@ WEB_URL=http://feature-x.localhost:3000
 ADMIN_URL=http://admin.feature-x.localhost:3001
 ```
 
+### Child Process Environment
+
+When silo launches child processes (Tilt, hooks, k3d, kubectl), it injects:
+
+- `SILO_ACTIVE=1`
+- `SILO_WORKSPACE=<workspace name>`
+- `SILO_ENV_FILE=<absolute path to generated env file>`
+
+### Tilt Extension (require)
+
+silo ships a small Tilt extension to enforce silo-only execution.
+
+Local (bundled with this repo):
+
+```python
+load('./tilt-extensions/silo/require/Tiltfile', 'SILO_REQUIRE')
+```
+
+From a GitHub-hosted extension repo:
+
+```python
+v1alpha1.extension_repo(name='default', url='https://github.com/<org>/<tilt-extensions-repo>')
+load('ext://silo/require', 'SILO_REQUIRE')
+```
+
+If the extension is published to the default Tilt extensions repo, you can
+skip `extension_repo` and just use the `load('ext://...')` line.
+
 ### Lockfile (.silo.lock)
 
 ```json
@@ -1110,6 +1138,10 @@ hooks.post-up = ["./scripts/configure-remote.sh"]
 ```python
 load('ext://dotenv', 'dotenv')
 dotenv('.localnet.env')
+load('./tilt-extensions/silo/require/Tiltfile', 'SILO_REQUIRE')
+# Or, if using a GitHub-hosted extension repo:
+# v1alpha1.extension_repo(name='default', url='https://github.com/<org>/<tilt-extensions-repo>')
+# load('ext://silo/require', 'SILO_REQUIRE')
 
 # Read env vars for registry and ports
 web_port = os.getenv('WEB_PORT', '3000')
@@ -1620,6 +1652,7 @@ All design decisions were made through interview. Key choices:
 - **New variables**: Profiles can introduce variables not defined in base config
 - **Missing profiles**: Error if `--profile` used but no profiles defined in silo.toml
 - **Env output**: `SILO_PROFILE` variable added to env file when profile active
+- **Child process env**: `SILO_ACTIVE`, `SILO_WORKSPACE`, `SILO_ENV_FILE` exported to spawned processes
 - **Array merge**: Default replace; `[profiles.x.append]` section for appending to arrays
 - **k3d toggle**: Profiles can enable/disable k3d
 - **Env var**: SILO_PROFILE env var supported; `--profile` flag takes precedence

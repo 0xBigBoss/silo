@@ -44,6 +44,15 @@ export const buildEnvVars = (state: InstanceState, urls: Record<string, string>)
   return env;
 };
 
+export const buildSiloProcessEnv = (params: {
+  state: InstanceState;
+  envFilePath: string;
+}): Record<string, string> => ({
+  SILO_ACTIVE: "1",
+  SILO_WORKSPACE: params.state.identity.name,
+  SILO_ENV_FILE: params.envFilePath,
+});
+
 const renderEnvFile = (params: {
   state: InstanceState;
   config: ResolvedConfig;
