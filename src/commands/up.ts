@@ -1,6 +1,11 @@
 import { loadConfig } from "../core/config";
 import { buildInstanceState, resolveInstanceName } from "../core/instance";
-import { buildEnvVars, writeEnvAndLockfile } from "../core/env";
+import {
+  buildEnvVars,
+  buildSiloProcessEnv,
+  resolveEnvPath,
+  writeEnvAndLockfile,
+} from "../core/env";
 import { readLockfile, updateLockfile } from "../core/lockfile";
 import { resolveAndApplyProfile } from "../core/profile";
 import { applyRegistryPortOverride } from "../core/registry";
@@ -19,6 +24,8 @@ export const up = async (
   nameArg: string | undefined,
   options: { config: string; force: boolean; profile: string | undefined }
 ): Promise<void> => {
+  process.env.SILO_ACTIVE = "1";
+
   logger.info("Loading config");
   const baseConfig = await loadConfig(options.config);
   logger.verbose(`Config path: ${baseConfig.configPath}`);
@@ -76,7 +83,7 @@ export const up = async (
 
   logger.info("Allocating ports");
   const portEvents: PortAllocationEvent[] = [];
-  const { state, urls, envVars, hostOrder, portOrder, urlOrder, k3dArgs } =
+  const { state, urls, envVars: baseEnvVars, hostOrder, portOrder, urlOrder, k3dArgs } =
     await buildInstanceState({
       config,
       name,
@@ -87,6 +94,11 @@ export const up = async (
     });
 
   logPortAllocations(portEvents);
+
+  const envFilePath = resolveEnvPath(config);
+  const siloEnv = buildSiloProcessEnv({ state, envFilePath });
+  const envVars = { ...baseEnvVars, ...siloEnv };
+  Object.assign(process.env, siloEnv);
 
   let currentState = state;
   let currentUrls = urls;
@@ -148,7 +160,7 @@ export const up = async (
         );
         currentState = reconciledState;
         currentUrls = reconciledUrls;
-        currentEnvVars = buildEnvVars(currentState, currentUrls);
+        currentEnvVars = { ...buildEnvVars(currentState, currentUrls), ...siloEnv };
         await writeEnvAndLockfile({
           state: currentState,
           config,

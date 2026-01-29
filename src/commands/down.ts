@@ -1,5 +1,5 @@
 import { loadConfig } from "../core/config";
-import { resolveEnvPath } from "../core/env";
+import { buildSiloProcessEnv, resolveEnvPath } from "../core/env";
 import { readLockfile, updateLockfile } from "../core/lockfile";
 import { applyProfile } from "../core/profile";
 import { logger } from "../utils/logger";
@@ -19,6 +19,8 @@ export const down = async (options: {
   "delete-cluster": boolean;
   clean: boolean;
 }): Promise<void> => {
+  process.env.SILO_ACTIVE = "1";
+
   logger.info("Loading config");
   const baseConfig = await loadConfig(options.config);
   logger.verbose(`Config path: ${baseConfig.configPath}`);
@@ -35,7 +37,10 @@ export const down = async (options: {
     ports: lockfile.instance.ports,
   });
   const urls = resolveTemplateRecord(config.urls, config.urlOrder, templateVars);
-  const envVars = buildEnvVars(lockfile.instance, urls);
+  const envFilePath = resolveEnvPath(config);
+  const siloEnv = buildSiloProcessEnv({ state: lockfile.instance, envFilePath });
+  const envVars = { ...buildEnvVars(lockfile.instance, urls), ...siloEnv };
+  Object.assign(process.env, siloEnv);
 
   logger.info(`Running pre-down hooks (${config.hooks["pre-down"]?.length ?? 0})`);
   await runHooks({
@@ -95,8 +100,7 @@ export const down = async (options: {
 
   if (options.clean) {
     logger.info("Removing env file and lockfile");
-    const envPath = resolveEnvPath(config);
-    await fs.rm(envPath, { force: true });
+    await fs.rm(envFilePath, { force: true });
     await fs.rm(`${config.projectRoot}/.silo.lock`, { force: true });
   }
 };

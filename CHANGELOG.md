@@ -1,5 +1,11 @@
 # @0xbigboss/silo
 
+## 0.5.0
+
+### Minor Changes
+
+- Add SILO\_\* env markers for child processes and ship a Tilt require extension for silo-only runs.
+
 ## 0.4.1
 
 ### Patch Changes
