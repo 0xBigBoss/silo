@@ -14,7 +14,7 @@ const isTruthy = (value: string | undefined): boolean => {
   return true;
 };
 
-export const isCiEnv = (): boolean =>
+const isCiEnv = (): boolean =>
   isTruthy(process.env.GITHUB_ACTIONS) || isTruthy(process.env.CI);
 
 export const shouldExportCiEnv = (exportCi: boolean | undefined): boolean =>
