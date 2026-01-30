@@ -353,6 +353,13 @@ const main = async (): Promise<void> => {
         console.log(colors.green(VERSION_GROUND));
         console.log("");
         console.log(`${colors.bold("silo")} ${colors.green(`v${version}`)}`);
+        console.log("Isolated local development environments for Tilt and k3d.");
+        console.log("");
+        console.log(
+          colors.dim(
+            '"War. War never changes. But your localhost can." - Silo Overseer'
+          )
+        );
       } else {
         console.log(`silo v${version}`);
       }
