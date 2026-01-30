@@ -1,5 +1,11 @@
 # @0xbigboss/silo
 
+## 0.5.4
+
+### Patch Changes
+
+- 0fa4869: Fix release workflow to create GitHub releases by using `changeset publish` instead of raw `npm publish`
+
 ## 0.5.3
 
 ### Patch Changes
