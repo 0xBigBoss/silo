@@ -10,6 +10,7 @@ export interface SiloConfig {
   k3d?: K3dConfig;
   hooks?: LifecycleHooks;
   profiles?: Record<string, ProfileConfig>;
+  registry?: RegistryConfig;
 }
 
 export interface K3dConfig {
@@ -17,6 +18,11 @@ export interface K3dConfig {
   args?: string[];
   registry?: {
     enabled: boolean;
+    advertise?: boolean;
+    host?: string;
+    hostFromContainerRuntime?: string;
+    hostFromClusterNetwork?: string;
+    help?: string;
   };
 }
 
@@ -34,6 +40,14 @@ export interface ProfileAppendConfig {
   };
 }
 
+export interface RegistryConfig {
+  advertise?: boolean;
+  host?: string;
+  hostFromContainerRuntime?: string;
+  hostFromClusterNetwork?: string;
+  help?: string;
+}
+
 export interface ProfileConfig {
   ports?: Record<string, PortConfigValue>;
   hosts?: Record<string, string>;
@@ -41,6 +55,7 @@ export interface ProfileConfig {
   k3d?: Partial<K3dConfig>;
   hooks?: Partial<LifecycleHooks>;
   append?: ProfileAppendConfig;
+  registry?: RegistryConfig;
 }
 
 export interface ResolvedConfig {
@@ -56,6 +71,7 @@ export interface ResolvedConfig {
   k3d: K3dConfig | undefined;
   hooks: LifecycleHooks;
   profiles: Record<string, ProfileConfig> | undefined;
+  registry: RegistryConfig | undefined;
   configPath: string;
   projectRoot: string;
 }

@@ -7,6 +7,8 @@ import { applyProfile } from "../core/profile";
 import { clusterExists } from "../backends/k3d";
 import { isPidRunning, isTiltProcess } from "../utils/process";
 import { logger } from "../utils/logger";
+import { resolveRegistryAdvertiseSettings } from "../core/registry";
+import { getRegistryConfigMapStatus } from "../backends/registry";
 
 export const status = async (options: { config: string }): Promise<void> => {
   const resolvedConfigPath = path.resolve(process.cwd(), options.config);
@@ -49,8 +51,32 @@ export const status = async (options: { config: string }): Promise<void> => {
   if (clusterName) {
     logger.info(`k3d: ${clusterName} (${k3dRunning ? "running" : "missing"})`);
   }
+  const urls =
+    resolvedConfig && resolvedConfig.urlOrder.length > 0
+      ? resolveTemplateRecord(
+          resolvedConfig.urls,
+          resolvedConfig.urlOrder,
+          buildTemplateVars({
+            identity: lockfile.instance.identity,
+            ports: lockfile.instance.ports,
+          })
+        )
+      : {};
+
+  const registrySettings = resolvedConfig
+    ? resolveRegistryAdvertiseSettings({
+        config: resolvedConfig,
+        state: lockfile.instance,
+        urls,
+      })
+    : null;
+
   if (lockfile.instance.identity.k3dRegistryName) {
-    logger.info(`Registry: ${lockfile.instance.identity.k3dRegistryName}`);
+    const registryHost = registrySettings?.host;
+    const hostLabel = registryHost ? ` (host ${registryHost})` : "";
+    logger.info(`Registry: ${lockfile.instance.identity.k3dRegistryName}${hostLabel}`);
+  } else if (registrySettings) {
+    logger.info(`Registry: ${registrySettings.host} (external)`);
   }
   if (lockfile.instance.identity.kubeconfigPath) {
     logger.info(`Kubeconfig: ${lockfile.instance.identity.kubeconfigPath}`);
@@ -61,15 +87,17 @@ export const status = async (options: { config: string }): Promise<void> => {
     logger.info(`  ${key}: ${value}`);
   });
 
+  if (registrySettings) {
+    const registryStatus = await getRegistryConfigMapStatus({
+      ...(lockfile.instance.identity.kubeconfigPath !== undefined && {
+        kubeconfigPath: lockfile.instance.identity.kubeconfigPath,
+      }),
+      cwd: projectRoot,
+    });
+    logger.info(`Registry ConfigMap: ${registryStatus}`);
+  }
+
   if (resolvedConfig && resolvedConfig.urlOrder.length > 0) {
-    const urls = resolveTemplateRecord(
-      resolvedConfig.urls,
-      resolvedConfig.urlOrder,
-      buildTemplateVars({
-        identity: lockfile.instance.identity,
-        ports: lockfile.instance.ports,
-      })
-    );
     logger.info("URLs:");
     Object.entries(urls).forEach(([key, value]) => {
       logger.info(`  ${key}: ${value}`);

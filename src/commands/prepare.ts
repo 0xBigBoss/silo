@@ -8,7 +8,10 @@ import {
 } from "../core/env";
 import { readLockfile, updateLockfile } from "../core/lockfile";
 import { resolveAndApplyProfile } from "../core/profile";
-import { applyRegistryPortOverride } from "../core/registry";
+import {
+  applyRegistryPortOverride,
+  resolveRegistryAdvertiseSettings,
+} from "../core/registry";
 import { ensureToolsAvailable } from "../utils/validate";
 import { logger, logPortAllocations } from "../utils/logger";
 import { runHooks } from "../hooks/runner";
@@ -19,6 +22,11 @@ import { findTiltPidsInDir, isPidRunning, isTiltProcess } from "../utils/process
 import { SiloError } from "../utils/errors";
 import type { PortAllocationEvent } from "../core/ports";
 import type { InstanceState, ResolvedConfig } from "../core/types";
+import {
+  REGISTRY_ADVERTISE_RETRY_BASE_DELAY_MS,
+  REGISTRY_ADVERTISE_RETRY_COUNT,
+  REGISTRY_ADVERTISE_RETRY_MAX_DELAY_MS,
+} from "../core/constants";
 
 type PrepareResult = {
   config: ResolvedConfig;
@@ -74,8 +82,14 @@ export const prepareTiltEnvironment = async (params: {
   if (config.k3d?.enabled) {
     tools.push("k3d");
   }
+  const registryAdvertiseEnabled =
+    (config.k3d?.registry?.enabled && config.k3d.registry.advertise !== false) ||
+    (config.registry && config.registry.advertise !== false);
   if (config.k3d?.registry?.enabled) {
-    tools.push("kubectl", "docker");
+    tools.push("docker");
+  }
+  if (registryAdvertiseEnabled) {
+    tools.push("kubectl");
   }
   logger.info(`Validating tools: ${tools.join(", ")}`);
   await ensureToolsAvailable(tools);
@@ -183,32 +197,6 @@ export const prepareTiltEnvironment = async (params: {
       }
     }
 
-    if (config.k3d?.registry?.enabled && currentState.identity.k3dRegistryName) {
-      if (!currentState.identity.kubeconfigPath) {
-        throw new SiloError(
-          "Kubeconfig path missing for registry advertisement",
-          "INVALID_STATE"
-        );
-      }
-      const registryPort = currentState.ports.K3D_REGISTRY_PORT;
-      if (!registryPort) {
-        throw new SiloError(
-          "K3D_REGISTRY_PORT missing for registry advertisement",
-          "INVALID_STATE"
-        );
-      }
-      const registryHost = `localhost:${registryPort}`;
-      const registryHostFromCluster = `${currentState.identity.composeName}-registry.localhost:5000`;
-      logger.info("Advertising registry via ConfigMap");
-      await advertiseLocalRegistry({
-        registryHost,
-        registryHostFromContainerRuntime: registryHostFromCluster,
-        registryHostFromClusterNetwork: registryHostFromCluster,
-        kubeconfigPath: currentState.identity.kubeconfigPath,
-        cwd: config.projectRoot,
-      });
-    }
-
     await updateLockfile(config.projectRoot, (current) => ({
       ...current.instance,
       k3dClusterCreated: true,
@@ -219,6 +207,40 @@ export const prepareTiltEnvironment = async (params: {
         ? `Created k3d cluster '${currentState.identity.k3dClusterName}'`
         : `Reusing k3d cluster '${currentState.identity.k3dClusterName}'`
     );
+  }
+
+  const advertiseSettings = resolveRegistryAdvertiseSettings({
+    config,
+    state: currentState,
+    urls: currentUrls,
+  });
+  if (advertiseSettings) {
+    if (!currentState.identity.kubeconfigPath && advertiseSettings.source === "k3d") {
+      throw new SiloError(
+        "Kubeconfig path missing for registry advertisement",
+        "INVALID_STATE"
+      );
+    }
+    logger.info("Advertising registry via ConfigMap");
+    await advertiseLocalRegistry({
+      registryHost: advertiseSettings.host,
+      ...(advertiseSettings.hostFromContainerRuntime !== undefined && {
+        registryHostFromContainerRuntime: advertiseSettings.hostFromContainerRuntime,
+      }),
+      ...(advertiseSettings.hostFromClusterNetwork !== undefined && {
+        registryHostFromClusterNetwork: advertiseSettings.hostFromClusterNetwork,
+      }),
+      ...(advertiseSettings.help !== undefined && { help: advertiseSettings.help }),
+      ...(currentState.identity.kubeconfigPath !== undefined && {
+        kubeconfigPath: currentState.identity.kubeconfigPath,
+      }),
+      cwd: config.projectRoot,
+      retry: {
+        attempts: REGISTRY_ADVERTISE_RETRY_COUNT,
+        baseDelayMs: REGISTRY_ADVERTISE_RETRY_BASE_DELAY_MS,
+        maxDelayMs: REGISTRY_ADVERTISE_RETRY_MAX_DELAY_MS,
+      },
+    });
   }
 
   logger.info(`Running post-up hooks (${config.hooks["post-up"]?.length ?? 0})`);
