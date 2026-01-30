@@ -2,4 +2,5 @@
 "@0xbigboss/silo": patch
 ---
 
-Add CI health checks for the example Tilt workloads after `silo ci`.
+Add `silo ci` command with CI env export, document remote Tilt extension usage,
+and add CI health checks for the example workloads.
