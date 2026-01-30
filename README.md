@@ -2,6 +2,8 @@
 
 Isolated local development environments. silo solves instance isolation and k3d bootstrap sequencing for Tilt-based projects.
 
+![silo version](docs/screenshot.png)
+
 ## Requirements
 
 - Bun (runtime)
