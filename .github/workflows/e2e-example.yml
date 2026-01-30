@@ -9,10 +9,7 @@ on:
 env:
   BUN_VERSION: "1.3.3"
   SILO_CI_TIMEOUT: "300s"
-  SILO_UP_NAME: "ci-up"
   SILO_CI_NAME: "ci-run"
-  SILO_UP_POLL_ATTEMPTS: "60"
-  SILO_UP_POLL_INTERVAL: "2"
 
 jobs:
   example:
@@ -48,44 +45,6 @@ jobs:
           curl -fsSL https://raw.githubusercontent.com/tilt-dev/tilt/master/scripts/install.sh | bash
           tilt version
 
-      - name: Silo up (example)
-        working-directory: example
-        run: |
-          set -euo pipefail
-
-          cleanup() {
-            ../silo down --delete-cluster --clean || true
-            if kill -0 "${SILO_PID}" >/dev/null 2>&1; then
-              kill "${SILO_PID}" || true
-              wait "${SILO_PID}" || true
-            fi
-          }
-
-          ../silo up "${SILO_UP_NAME}" &
-          SILO_PID=$!
-          trap cleanup EXIT
-
-          python - <<'PY'
-          import json
-          import os
-          import pathlib
-          import time
-
-          lockfile = pathlib.Path('.silo.lock')
-          attempts = int(os.environ['SILO_UP_POLL_ATTEMPTS'])
-          interval = int(os.environ['SILO_UP_POLL_INTERVAL'])
-          for _ in range(attempts):
-              if lockfile.exists():
-                  data = json.loads(lockfile.read_text())
-                  tilt_pid = data.get('instance', {}).get('tiltPid')
-                  if tilt_pid:
-                      print(f"tiltPid ready: {tilt_pid}")
-                      break
-              time.sleep(interval)
-          else:
-              raise SystemExit("tiltPid not set in lockfile")
-          PY
-
       - name: Silo ci (example)
         working-directory: example
         run: |
@@ -97,4 +56,10 @@ jobs:
             echo "GITHUB_ENV missing" >&2
             exit 1
           fi
+
+      - name: Cleanup
+        if: always()
+        working-directory: example
+        run: |
+          set -euo pipefail
           ../silo down --delete-cluster --clean || true
