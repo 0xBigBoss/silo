@@ -3,6 +3,7 @@ import type {
   LifecycleHooks,
   Lockfile,
   ProfileConfig,
+  RegistryConfig,
   ResolvedConfig,
 } from "./types";
 import { SiloError } from "../utils/errors";
@@ -172,6 +173,22 @@ const mergeK3dConfig = (params: {
   };
 };
 
+const mergeRegistryConfig = (
+  base: RegistryConfig | undefined,
+  override: RegistryConfig | undefined
+): RegistryConfig | undefined => {
+  if (!base && !override) {
+    return undefined;
+  }
+  if (!override) {
+    return base ? { ...base } : undefined;
+  }
+  if (!base) {
+    return { ...override };
+  }
+  return { ...base, ...override };
+};
+
 export const applyProfile = (config: ResolvedConfig, profileName: string): ResolvedConfig => {
   const profile = config.profiles?.[profileName];
   if (!profile) {
@@ -202,6 +219,7 @@ export const applyProfile = (config: ResolvedConfig, profileName: string): Resol
     override: profile.k3d,
     appendArgs: profile.append?.k3d?.args,
   });
+  const registry = mergeRegistryConfig(config.registry, profile.registry);
 
   return {
     ...config,
@@ -213,5 +231,6 @@ export const applyProfile = (config: ResolvedConfig, profileName: string): Resol
     urlOrder,
     hooks,
     k3d,
+    registry,
   };
 };

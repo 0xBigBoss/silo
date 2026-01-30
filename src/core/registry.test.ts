@@ -16,6 +16,7 @@ const baseConfig: ResolvedConfig = {
   k3d: { enabled: true, registry: { enabled: true } },
   hooks: {},
   profiles: undefined,
+  registry: undefined,
   configPath: "/repo/silo.toml",
   projectRoot: "/repo",
 };

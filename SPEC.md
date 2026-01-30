@@ -262,6 +262,7 @@ interface SiloConfig {
   k3d?: K3dConfig;
   hooks?: LifecycleHooks;
   profiles?: Record<string, ProfileConfig>; // Optional: environment-specific overrides
+  registry?: RegistryConfig; // Optional: external registry advertisement
 }
 
 // Defaults applied at config load time
@@ -277,6 +278,11 @@ interface K3dConfig {
   args?: string[];
   registry?: {
     enabled: boolean;
+    advertise?: boolean; // Default: true
+    host?: string;
+    hostFromContainerRuntime?: string;
+    hostFromClusterNetwork?: string;
+    help?: string;
     // Port allocated via ports.K3D_REGISTRY_PORT (default: 5000)
   };
 }
@@ -297,12 +303,21 @@ interface ProfileConfig {
   k3d?: Partial<K3dConfig>; // Override k3d settings
   hooks?: Partial<LifecycleHooks>; // Replace hook arrays
   append?: ProfileAppendConfig; // Append to arrays instead of replacing
+  registry?: RegistryConfig; // Override external registry advertisement
 }
 
 // Append section for array fields
 interface ProfileAppendConfig {
   hooks?: Partial<LifecycleHooks>; // Appended after base hooks
   k3d?: { args?: string[] }; // Appended after base k3d.args
+}
+
+interface RegistryConfig {
+  advertise?: boolean; // Default: true
+  host?: string;
+  hostFromContainerRuntime?: string;
+  hostFromClusterNetwork?: string;
+  help?: string;
 }
 
 interface InstanceIdentity {
@@ -973,6 +988,8 @@ EOF
 Notes:
 
 - `host` must match the registry address reachable from the **developer machine**.
+- Override fields via `k3d.registry.*` (host/hostFrom*/help) when defaults aren't correct.
+- External clusters can use top-level `[registry]` to advertise without k3d.
 - `hostFromContainerRuntime` is the address that the **node runtime** uses to pull images.
 - `hostFromClusterNetwork` is the address that **pods in the cluster** can use if needed.
 - `help` is optional and may point to project-specific registry docs.

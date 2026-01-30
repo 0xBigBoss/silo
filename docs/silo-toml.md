@@ -59,6 +59,12 @@ args = [
 
 [k3d.registry]
 enabled = true
+advertise = true
+
+# Optional external registry advertisement
+# [registry]
+# advertise = true
+# host = "127.0.0.1:5001"
 
 [hooks]
 pre-up = ["./scripts/check-deps.sh"]
@@ -78,6 +84,7 @@ post-down = []
 - `urls` (optional): URL templates. Default: empty.
 - `k3d` (optional): k3d cluster integration settings.
 - `hooks` (optional): Lifecycle hook commands.
+- `registry` (optional): registry advertisement settings for non-k3d clusters.
 
 ## Ports
 
@@ -131,6 +138,11 @@ args = [
 
 [k3d.registry]
 enabled = true
+advertise = true
+host = "localhost:${K3D_REGISTRY_PORT}"
+hostFromContainerRuntime = "localnet-dev-registry.localhost:5000"
+hostFromClusterNetwork = "localnet-dev-registry.localhost:5000"
+help = "See registry docs"
 ```
 
 The loadbalancer routes traffic from your host into the cluster. Without it, you'd
@@ -139,6 +151,21 @@ need `kubectl port-forward` for every service.
 Notes:
 - Registry port is allocated via `ports.K3D_REGISTRY_PORT` (default: 5000).
 - `k3d.args` can use interpolation variables (see below).
+
+## Registry (External)
+
+Advertise an external registry to your cluster without k3d:
+
+```toml
+[registry]
+advertise = true
+host = "127.0.0.1:5001"
+hostFromContainerRuntime = "registry.localhost:5000"
+hostFromClusterNetwork = "registry.localhost:5000"
+help = "See registry docs"
+```
+
+Registry fields support interpolation (same variables as URLs).
 
 ## Hooks
 

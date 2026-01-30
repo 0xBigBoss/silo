@@ -19,6 +19,12 @@ args = [
 
 [k3d.registry]
 enabled = true
+advertise = true
+# Optional overrides for ConfigMap fields:
+# host = "localhost:${K3D_REGISTRY_PORT}"
+# hostFromContainerRuntime = "localnet-dev-registry.localhost:5000"
+# hostFromClusterNetwork = "localnet-dev-registry.localhost:5000"
+# help = "See registry docs"
 ```
 
 If the registry is enabled, define `K3D_REGISTRY_PORT` in `[ports]`.
@@ -48,7 +54,30 @@ When `k3d.registry.enabled = true`, silo advertises the registry using the
 standard `local-registry-hosting` ConfigMap in the `kube-public` namespace. This
 allows Tilt to auto-discover the registry without `default_registry()`.
 
+Overrides:
+- `k3d.registry.advertise` (default: true)
+- `k3d.registry.host`
+- `k3d.registry.hostFromContainerRuntime`
+- `k3d.registry.hostFromClusterNetwork`
+- `k3d.registry.help`
+
+Registry override fields support interpolation (same variables as URLs).
+
+## External Registry Advertising
+
+You can advertise an external registry without k3d by setting a top-level
+`[registry]` block:
+
+```toml
+[registry]
+advertise = true
+host = "127.0.0.1:5001"
+hostFromContainerRuntime = "registry.localhost:5000"
+hostFromClusterNetwork = "registry.localhost:5000"
+help = "See registry docs"
+```
+
 ## Tool Requirements
 
 - `k3d` is required when k3d is enabled.
-- `kubectl` is required when the registry is enabled.
+- `kubectl` is required when registry advertisement is enabled.

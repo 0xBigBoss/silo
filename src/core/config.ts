@@ -30,16 +30,29 @@ const HooksSchema = z
   })
   .strict();
 
+const RegistryAdvertiseSchema = z
+  .object({
+    advertise: z.boolean().optional(),
+    host: z.string().optional(),
+    hostFromContainerRuntime: z.string().optional(),
+    hostFromClusterNetwork: z.string().optional(),
+    help: z.string().optional(),
+  })
+  .strict();
+
+const K3dRegistrySchema = RegistryAdvertiseSchema.extend({
+  enabled: z.boolean(),
+}).strict();
+
+const ProfileK3dRegistrySchema = RegistryAdvertiseSchema.extend({
+  enabled: z.boolean().optional(),
+}).strict();
+
 const K3dSchema = z
   .object({
     enabled: z.boolean(),
     args: z.array(z.string()).optional(),
-    registry: z
-      .object({
-        enabled: z.boolean(),
-      })
-      .strict()
-      .optional(),
+    registry: K3dRegistrySchema.optional(),
   })
   .strict();
 
@@ -47,12 +60,7 @@ const ProfileK3dSchema = z
   .object({
     enabled: z.boolean().optional(),
     args: z.array(z.string()).optional(),
-    registry: z
-      .object({
-        enabled: z.boolean().optional(),
-      })
-      .strict()
-      .optional(),
+    registry: ProfileK3dRegistrySchema.optional(),
   })
   .strict();
 
@@ -76,6 +84,7 @@ const ProfileConfigSchema = z
     k3d: ProfileK3dSchema.optional(),
     hooks: HooksSchema.optional(),
     append: ProfileAppendSchema.optional(),
+    registry: RegistryAdvertiseSchema.optional(),
   })
   .strict();
 
@@ -90,6 +99,7 @@ const SiloConfigSchema = z
     k3d: K3dSchema.optional(),
     hooks: HooksSchema.optional(),
     profiles: z.record(ProfileConfigSchema).optional(),
+    registry: RegistryAdvertiseSchema.optional(),
   })
   .strict();
 
@@ -140,6 +150,7 @@ export const loadConfig = async (configPath: string): Promise<ResolvedConfig> =>
     k3d: parsed.k3d,
     hooks,
     profiles: parsed.profiles,
+    registry: parsed.registry,
     configPath: resolvedPath,
     projectRoot: configDir,
   };

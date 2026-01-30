@@ -40,6 +40,12 @@ silo writes an env file and also exports the same vars when running Tilt. Your
 Tiltfile can read the file directly (for example with a dotenv extension) or
 use the process environment.
 
+## Registry Auto-Discovery
+
+When registry advertisement is enabled (k3d registry or top-level `registry`),
+silo writes the `local-registry-hosting` ConfigMap so Tilt can auto-discover the
+local registry without `default_registry()`. See `silo doc k3d` for details.
+
 ## Silo Requirement (Tilt Extension)
 
 If your Tiltfile must only run under `silo up`, you can load the bundled
