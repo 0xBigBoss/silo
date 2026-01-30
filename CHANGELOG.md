@@ -1,5 +1,12 @@
 # @0xbigboss/silo
 
+## 0.5.1
+
+### Patch Changes
+
+- 1110836: Add `silo ci` command with CI env export, document remote Tilt extension usage,
+  and add CI health checks for the example workloads.
+
 ## 0.5.0
 
 ### Minor Changes
