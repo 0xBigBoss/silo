@@ -3,9 +3,15 @@
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.11";
+
+    bun-overlay.url = "github:0xBigBoss/bun-overlay";
+    bun-overlay.inputs.nixpkgs.follows = "nixpkgs";
+
+    tilt-overlay.url = "github:0xBigBoss/tilt-overlay";
+    tilt-overlay.inputs.nixpkgs.follows = "nixpkgs";
   };
 
-  outputs = { self, nixpkgs }:
+  outputs = { self, nixpkgs, bun-overlay, tilt-overlay }:
     let
       systems = [
         "x86_64-linux"
@@ -19,13 +25,19 @@
     {
       devShells = forAllSystems (system:
         let
-          pkgs = import nixpkgs { inherit system; };
+          pkgs = import nixpkgs {
+            inherit system;
+            overlays = [
+              bun-overlay.overlays.default
+              tilt-overlay.overlays.default
+            ];
+          };
         in
         {
           default = pkgs.mkShell {
             packages = [
               pkgs.bun
-              pkgs.nodejs_20
+              pkgs.fnm
               pkgs.k3d
               pkgs.kubectl
               pkgs.tilt
@@ -35,6 +47,10 @@
               pkgs.bash
               pkgs.coreutils
             ];
+
+            shellHook = ''
+              eval "$(fnm env --use-on-cd)"
+            '';
           };
         });
     };
