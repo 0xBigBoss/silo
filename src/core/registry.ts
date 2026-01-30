@@ -5,7 +5,7 @@ import type { InstanceState, ResolvedConfig } from "./types";
 import { interpolateTemplate } from "./interpolate";
 import { SiloError } from "../utils/errors";
 
-export type RegistryAdvertiseSettings = {
+type RegistryAdvertiseSettings = {
   source: "k3d" | "external";
   host: string;
   hostFromContainerRuntime?: string;
