@@ -1,14 +1,20 @@
 import { loadConfig } from "../core/config";
 import { buildInstanceState, resolveInstanceName } from "../core/instance";
-import { writeEnvAndLockfile } from "../core/env";
+import { appendGithubEnv, writeEnvAndLockfile } from "../core/env";
 import { readLockfile } from "../core/lockfile";
 import { resolveAndApplyProfile } from "../core/profile";
 import { logger, logPortAllocations } from "../utils/logger";
+import { resolveGithubEnvPath, shouldExportCiEnv } from "../utils/ci";
 import type { PortAllocationEvent } from "../core/ports";
 
 export const env = async (
   nameArg: string | undefined,
-  options: { config: string; force: boolean; profile: string | undefined }
+  options: {
+    config: string;
+    force: boolean;
+    profile: string | undefined;
+    exportCi: boolean;
+  }
 ) => {
   logger.info("Loading config");
   const baseConfig = await loadConfig(options.config);
@@ -49,6 +55,11 @@ export const env = async (
   logPortAllocations(portEvents);
 
   await writeEnvAndLockfile({ state, config, urls, hostOrder, portOrder, urlOrder });
+
+  if (shouldExportCiEnv(options.exportCi)) {
+    const githubEnvPath = resolveGithubEnvPath();
+    await appendGithubEnv({ state, urls, githubEnvPath });
+  }
 
   logger.info("Ports:");
   Object.entries(state.ports).forEach(([key, value]) => {

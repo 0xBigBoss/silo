@@ -1,0 +1,65 @@
+name: e2e-example
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+env:
+  BUN_VERSION: "1.3.3"
+  SILO_CI_TIMEOUT: "300s"
+  SILO_CI_NAME: "ci-run"
+
+jobs:
+  example:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Install kubectl
+        uses: azure/setup-kubectl@v4
+        with:
+          version: latest
+
+      - name: Install k3d
+        run: |
+          set -euo pipefail
+          curl -sSL https://raw.githubusercontent.com/k3d-io/k3d/main/install.sh | bash
+          k3d version
+
+      - name: Install Tilt
+        run: |
+          set -euo pipefail
+          curl -fsSL https://raw.githubusercontent.com/tilt-dev/tilt/master/scripts/install.sh | bash
+          tilt version
+
+      - name: Silo ci (example)
+        working-directory: example
+        run: |
+          set -euo pipefail
+          ../silo ci "${SILO_CI_NAME}" --timeout "${SILO_CI_TIMEOUT}"
+          if [ -n "${GITHUB_ENV:-}" ]; then
+            grep -q '^KUBECONFIG=' "$GITHUB_ENV"
+          else
+            echo "GITHUB_ENV missing" >&2
+            exit 1
+          fi
+
+      - name: Cleanup
+        if: always()
+        working-directory: example
+        run: |
+          set -euo pipefail
+          ../silo down --delete-cluster --clean || true

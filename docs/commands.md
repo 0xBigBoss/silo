@@ -117,6 +117,24 @@ Options:
 
 - `-f, --force` Regenerate ports even if lockfile exists
 - `-p, --profile` Use named profile (overrides `SILO_PROFILE`)
+- `--export-ci` Export env vars to `$GITHUB_ENV` (auto in CI)
+
+## ci
+
+```
+silo ci [name] [-- <tilt args>]
+```
+
+Runs the full silo startup sequence for CI (env, hooks, k3d) and executes
+`tilt ci` instead of `tilt up`.
+
+Options:
+
+- `-f, --force` Regenerate ports even if lockfile exists
+- `-p, --profile` Use named profile (overrides `SILO_PROFILE`)
+- `--timeout` Passed through to `tilt ci --timeout`
+- `--export-ci` Export env vars to `$GITHUB_ENV` (auto in CI)
+- `--` Pass remaining args to `tilt ci`
 
 ## profiles
 
