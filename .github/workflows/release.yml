@@ -11,6 +11,9 @@ jobs:
   release:
     name: Release
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -41,18 +44,13 @@ jobs:
       - name: Build
         run: bun run build
 
-      - name: Create Release Pull Request
-        id: changesets
+      - name: Create Release Pull Request or Publish
         uses: changesets/action@v1
         with:
           version: bun run version
+          publish: npm publish --access public
           title: "chore: release"
           commit: "chore: release"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Publish to npm
-        if: steps.changesets.outputs.hasChangesets == 'false'
-        run: npm publish --access public
-        env:
           NODE_AUTH_TOKEN: ${{ secrets.NODE_AUTH_TOKEN }}
