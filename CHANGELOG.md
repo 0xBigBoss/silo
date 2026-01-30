@@ -1,5 +1,11 @@
 # @0xbigboss/silo
 
+## 0.5.2
+
+### Patch Changes
+
+- 6f2e108: Add about blurb and Silo Overseer quote to version output; add screenshot to README
+
 ## 0.5.1
 
 ### Patch Changes
