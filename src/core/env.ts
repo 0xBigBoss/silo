@@ -1,10 +1,22 @@
 import path from "path";
+import { appendFile } from "fs/promises";
 import type { InstanceState, ResolvedConfig } from "./types";
 import { writeLockfile } from "./lockfile";
 import { logger } from "../utils/logger";
+import { SiloError } from "../utils/errors";
 
 const toEnvLine = (key: string, value: string | number): string =>
   `${key}=${String(value)}`;
+
+const renderGithubEnv = (env: Record<string, string>): string => {
+  const lines = Object.entries(env)
+    .sort(([left], [right]) => left.localeCompare(right))
+    .map(([key, value]) => toEnvLine(key, value));
+  if (lines.length === 0) {
+    return "";
+  }
+  return `${lines.join("\n")}\n`;
+};
 
 export const buildEnvVars = (state: InstanceState, urls: Record<string, string>): Record<string, string> => {
   const env: Record<string, string> = {
@@ -156,4 +168,26 @@ export const writeEnvAndLockfile = async (params: {
   logger.info("Wrote lockfile");
 
   return envPath;
+};
+
+export const appendGithubEnv = async (params: {
+  state: InstanceState;
+  urls: Record<string, string>;
+  githubEnvPath: string;
+}): Promise<void> => {
+  const { state, urls, githubEnvPath } = params;
+  const content = renderGithubEnv(buildEnvVars(state, urls));
+  if (content.length === 0) {
+    return;
+  }
+  try {
+    await appendFile(githubEnvPath, content, "utf8");
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    throw new SiloError(
+      `Failed to write GITHUB_ENV: ${message}`,
+      "GITHUB_ENV_WRITE_FAILED"
+    );
+  }
+  logger.info(`Exported env vars to ${githubEnvPath}`);
 };

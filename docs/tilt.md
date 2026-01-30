@@ -54,9 +54,12 @@ load('./tilt-extensions/silo/require/Tiltfile', 'SILO_REQUIRE')
 From a GitHub-hosted extension repo:
 
 ```
-v1alpha1.extension_repo(name='default', url='https://github.com/<org>/<tilt-extensions-repo>')
-load('ext://silo/require', 'SILO_REQUIRE')
+v1alpha1.extension_repo(name='silo', url='https://github.com/0xBigBoss/silo')
+v1alpha1.extension(name='silo-require', repo_name='silo', repo_path='tilt-extensions/silo/require')
+load('ext://silo-require', 'SILO_REQUIRE')
 ```
+
+Note: `repo_path` belongs on `v1alpha1.extension()`, not `extension_repo()`.
 
 If the extension is published to the default Tilt extensions repo, you can
 skip `extension_repo` and just use the `load('ext://...')` line.

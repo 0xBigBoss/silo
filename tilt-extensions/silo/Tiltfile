@@ -2,6 +2,11 @@
 # Usage:
 #   load('./tilt-extensions/silo/Tiltfile', 'require_silo')
 #   require_silo()
+#
+# Remote (GitHub extension repo):
+#   v1alpha1.extension_repo(name='silo', url='https://github.com/0xBigBoss/silo')
+#   v1alpha1.extension(name='silo-require', repo_name='silo', repo_path='tilt-extensions/silo/require')
+#   load('ext://silo-require', 'SILO_REQUIRE')
 
 def _normalize_bool(value):
     if value == None:

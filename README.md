@@ -45,6 +45,7 @@ silo up [name]       # Start environment (creates k3d if needed, starts Tilt)
 silo down            # Stop environment (stops Tilt, keeps k3d by default)
 silo status          # Show current instance state
 silo env [name]      # Generate env file only, don't start anything
+silo ci [name]       # Run Tilt in CI mode (tilt ci) after env + k3d setup
 silo profiles        # List available profiles
 silo doc [topic]     # Print bundled docs (config, profiles, k3d, hooks, etc.)
 silo version         # Print version
@@ -67,6 +68,15 @@ When silo launches child processes (Tilt, hooks, k3d, kubectl), it injects:
 - `SILO_ACTIVE=1`
 - `SILO_WORKSPACE=<workspace name>`
 - `SILO_ENV_FILE=<absolute path to generated env file>`
+
+## CI usage
+
+`silo env` and `silo ci` auto-export env vars to `$GITHUB_ENV` when running in
+CI (or when `--export-ci` is provided):
+
+```bash
+silo ci e2e --timeout 300s
+```
 
 ## License
 

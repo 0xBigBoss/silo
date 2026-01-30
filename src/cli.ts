@@ -25,6 +25,7 @@ Commands:
   down            Stop environment (stops Tilt, keeps k3d by default)
   status          Show current instance state
   env [name]      Generate env file only, don't start anything
+  ci [name]       Run Tilt in CI mode (tilt ci) after env + k3d setup
   profiles        List available profiles from silo.toml
   version         Print silo version
 
@@ -54,6 +55,14 @@ Command Options:
   env:
     -f, --force      Regenerate ports even if lockfile exists
     -p, --profile    Use named profile for env generation
+    --export-ci      Export env vars to $GITHUB_ENV (auto in CI)
+
+  ci:
+    -f, --force      Regenerate ports even if lockfile exists
+    -p, --profile    Use named profile for env generation
+    --timeout        Passed through to tilt ci --timeout
+    --export-ci      Export env vars to $GITHUB_ENV (auto in CI)
+    --              Pass remaining args to tilt ci
 `;
 
 const DOC_TOPIC_LINES = Object.entries(DOC_TOPICS)
@@ -115,6 +124,23 @@ Arguments:
 Options:
   -f, --force     Regenerate ports even if lockfile exists
   -p, --profile   Use named profile for env generation
+  --export-ci     Export env vars to $GITHUB_ENV (auto in CI)
+  -c, --config    Path to config file (default: silo.toml)
+  -v, --verbose   Show verbose output
+  -h, --help      Show help
+`,
+  ci: `silo ci [name] [options] [-- <tilt args>]
+
+Run Tilt in CI mode (tilt ci) after env + k3d setup.
+
+Arguments:
+  [name]          Instance name (e.g., main, feature-x, dev)
+
+Options:
+  -f, --force     Regenerate ports even if lockfile exists
+  -p, --profile   Use named profile for env generation
+  --timeout       Passed through to tilt ci --timeout
+  --export-ci     Export env vars to $GITHUB_ENV (auto in CI)
   -c, --config    Path to config file (default: silo.toml)
   -v, --verbose   Show verbose output
   -h, --help      Show help
@@ -200,6 +226,7 @@ Examples:
   silo up dev                   # Start instance 'dev'
   silo up                       # Reuse last instance name
   silo env feature-x            # Generate env only
+  silo ci e2e --timeout 300s    # Run tilt ci with silo env + k3d
   silo down                     # Stop Tilt (keep k3d)
   silo down --delete-cluster    # Stop Tilt and delete k3d
   silo status                   # Show what's running
@@ -209,8 +236,15 @@ Examples:
 };
 
 const main = async (): Promise<void> => {
+  const rawArgs = Bun.argv.slice(2);
+  const passthroughIndex = rawArgs.indexOf("--");
+  const passthroughArgs =
+    passthroughIndex === -1 ? [] : rawArgs.slice(passthroughIndex + 1);
+  const parsedArgs =
+    passthroughIndex === -1 ? rawArgs : rawArgs.slice(0, passthroughIndex);
+
   const { values, positionals } = parseArgs({
-    args: Bun.argv.slice(2),
+    args: parsedArgs,
     options: {
       config: { type: "string", short: "c", default: "silo.toml" },
       force: { type: "boolean", short: "f", default: false },
@@ -221,6 +255,8 @@ const main = async (): Promise<void> => {
       json: { type: "boolean", default: false },
       "delete-cluster": { type: "boolean", default: false },
       clean: { type: "boolean", default: false },
+      timeout: { type: "string" },
+      "export-ci": { type: "boolean", default: false },
     },
     allowPositionals: true,
     strict: true,
@@ -289,6 +325,19 @@ const main = async (): Promise<void> => {
         config: values.config,
         force: values.force,
         profile: values.profile,
+        exportCi: values["export-ci"],
+      });
+      return;
+    }
+    case "ci": {
+      const mod = await import("./commands/ci");
+      await mod.ci(args[0], {
+        config: values.config,
+        force: values.force,
+        profile: values.profile,
+        timeout: values.timeout,
+        exportCi: values["export-ci"],
+        tiltArgs: passthroughArgs,
       });
       return;
     }

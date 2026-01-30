@@ -1,4 +1,4 @@
-import { TILT_DOWN_TIMEOUT_MS } from "../core/constants";
+import { TILT_CI_TIMEOUT_MS, TILT_DOWN_TIMEOUT_MS } from "../core/constants";
 import { runCommandChecked } from "../utils/exec";
 
 export const startTilt = (params: {
@@ -25,6 +25,29 @@ export const tiltDown = async (params: {
     env,
     timeoutMs: TILT_DOWN_TIMEOUT_MS,
     context: "tilt down",
+    stdio: "inherit",
+  });
+};
+
+export const tiltCi = async (params: {
+  cwd: string;
+  env: Record<string, string>;
+  timeout: string | undefined;
+  extraArgs: string[];
+}): Promise<void> => {
+  const { cwd, env, timeout, extraArgs } = params;
+  const args = ["tilt", "ci"];
+  if (timeout) {
+    args.push("--timeout", timeout);
+  }
+  if (extraArgs.length > 0) {
+    args.push(...extraArgs);
+  }
+  await runCommandChecked(args, {
+    cwd,
+    env,
+    timeoutMs: TILT_CI_TIMEOUT_MS,
+    context: "tilt ci",
     stdio: "inherit",
   });
 };
