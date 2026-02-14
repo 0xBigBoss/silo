@@ -1,6 +1,7 @@
 import path from "path";
 import { promises as fs } from "fs";
 import {
+  DOCKER_PS_TIMEOUT_MS,
   K3D_CREATE_TIMEOUT_MS,
   K3D_DELETE_TIMEOUT_MS,
   K3D_LIST_TIMEOUT_MS,
@@ -8,8 +9,109 @@ import {
 import { runCommand, runCommandChecked } from "../utils/exec";
 import { SiloError } from "../utils/errors";
 
-export const clusterExists = async (clusterName: string, cwd: string): Promise<boolean> => {
-  const result = await runCommand(["k3d", "cluster", "list"], {
+type RegistryHealth = "healthy" | "stale" | "unknown";
+
+export type EnsureClusterDeps = {
+  runCommand: typeof runCommand;
+  runCommandChecked: typeof runCommandChecked;
+};
+
+const defaultEnsureClusterDeps: EnsureClusterDeps = {
+  runCommand,
+  runCommandChecked,
+};
+
+const parseNamesOutput = (output: string): string[] =>
+  output
+    .split("\n")
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0);
+
+const parseRegistryListNames = (output: string): string[] | null => {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(output);
+  } catch {
+    return null;
+  }
+
+  if (!Array.isArray(parsed)) {
+    return null;
+  }
+
+  return parsed
+    .map((entry) => {
+      if (!entry || typeof entry !== "object") {
+        return null;
+      }
+      const name = (entry as { name?: unknown }).name;
+      return typeof name === "string" && name.length > 0 ? name : null;
+    })
+    .filter((name): name is string => name !== null);
+};
+
+const hasRegistryEntry = (registryNames: string[], registryHost: string): boolean => {
+  if (registryNames.includes(registryHost)) {
+    return true;
+  }
+  return registryNames.some((name) => name.endsWith(registryHost));
+};
+
+const hasRegistryContainer = (containerNames: string[], registryHost: string): boolean => {
+  const prefixedName = `k3d-${registryHost}`;
+  return containerNames.some(
+    (name) => name === registryHost || name === prefixedName || name.endsWith(registryHost)
+  );
+};
+
+const resolveRegistryHealth = async (
+  registryName: string,
+  cwd: string,
+  deps: EnsureClusterDeps
+): Promise<RegistryHealth> => {
+  const registryHost = registryName.split(":")[0] ?? registryName;
+
+  const registryList = await deps.runCommand(["k3d", "registry", "list", "-o", "json"], {
+    cwd,
+    timeoutMs: K3D_LIST_TIMEOUT_MS,
+    context: "k3d registry list",
+    stdio: "pipe",
+  });
+  if (registryList.exitCode !== 0) {
+    return "unknown";
+  }
+
+  const registryNames = parseRegistryListNames(registryList.stdout);
+  if (!registryNames) {
+    return "unknown";
+  }
+  if (!hasRegistryEntry(registryNames, registryHost)) {
+    return "stale";
+  }
+
+  const dockerContainers = await deps.runCommand(
+    ["docker", "ps", "--filter", `name=${registryHost}`, "--format", "{{.Names}}"],
+    {
+      cwd,
+      timeoutMs: DOCKER_PS_TIMEOUT_MS,
+      context: "docker ps (registry health check)",
+      stdio: "pipe",
+    }
+  );
+  if (dockerContainers.exitCode !== 0) {
+    return "unknown";
+  }
+
+  const containerNames = parseNamesOutput(dockerContainers.stdout);
+  return hasRegistryContainer(containerNames, registryHost) ? "healthy" : "stale";
+};
+
+export const clusterExists = async (
+  clusterName: string,
+  cwd: string,
+  runner: typeof runCommand = runCommand
+): Promise<boolean> => {
+  const result = await runner(["k3d", "cluster", "list"], {
     cwd,
     timeoutMs: K3D_LIST_TIMEOUT_MS,
     context: "k3d cluster list",
@@ -28,11 +130,25 @@ export const ensureCluster = async (params: {
   registryName: string | undefined;
   args: string[];
   cwd: string;
-}): Promise<{ created: boolean }> => {
+}, deps: EnsureClusterDeps = defaultEnsureClusterDeps): Promise<{ created: boolean }> => {
   const { clusterName, registryName, args, cwd } = params;
-  const exists = await clusterExists(clusterName, cwd);
+  const exists = await clusterExists(clusterName, cwd, deps.runCommand);
   if (exists) {
-    return { created: false };
+    if (!registryName) {
+      return { created: false };
+    }
+
+    const registryHealth = await resolveRegistryHealth(registryName, cwd, deps);
+    if (registryHealth !== "stale") {
+      return { created: false };
+    }
+
+    await deps.runCommandChecked(["k3d", "cluster", "delete", clusterName], {
+      cwd,
+      timeoutMs: K3D_DELETE_TIMEOUT_MS,
+      context: `k3d cluster delete ${clusterName}`,
+      stdio: "inherit",
+    });
   }
 
   const cmd = [
@@ -50,7 +166,7 @@ export const ensureCluster = async (params: {
 
   cmd.push(...args);
 
-  await runCommandChecked(cmd, {
+  await deps.runCommandChecked(cmd, {
     cwd,
     timeoutMs: K3D_CREATE_TIMEOUT_MS,
     context: `k3d cluster create ${clusterName}`,
