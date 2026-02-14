@@ -50,18 +50,9 @@ const parseRegistryListNames = (output: string): string[] | null => {
     .filter((name): name is string => name !== null);
 };
 
-const hasRegistryEntry = (registryNames: string[], registryHost: string): boolean => {
-  if (registryNames.includes(registryHost)) {
-    return true;
-  }
-  return registryNames.some((name) => name.endsWith(registryHost));
-};
-
-const hasRegistryContainer = (containerNames: string[], registryHost: string): boolean => {
-  const prefixedName = `k3d-${registryHost}`;
-  return containerNames.some(
-    (name) => name === registryHost || name === prefixedName || name.endsWith(registryHost)
-  );
+const hasExpectedRegistryName = (names: string[], registryHost: string): boolean => {
+  const allowedNames = new Set([registryHost, `k3d-${registryHost}`]);
+  return names.some((name) => allowedNames.has(name));
 };
 
 const resolveRegistryHealth = async (
@@ -85,25 +76,22 @@ const resolveRegistryHealth = async (
   if (!registryNames) {
     return "unknown";
   }
-  if (!hasRegistryEntry(registryNames, registryHost)) {
+  if (!hasExpectedRegistryName(registryNames, registryHost)) {
     return "stale";
   }
 
-  const dockerContainers = await deps.runCommand(
-    ["docker", "ps", "--filter", `name=${registryHost}`, "--format", "{{.Names}}"],
-    {
-      cwd,
-      timeoutMs: DOCKER_PS_TIMEOUT_MS,
-      context: "docker ps (registry health check)",
-      stdio: "pipe",
-    }
-  );
+  const dockerContainers = await deps.runCommand(["docker", "ps", "--format", "{{.Names}}"], {
+    cwd,
+    timeoutMs: DOCKER_PS_TIMEOUT_MS,
+    context: "docker ps (registry health check)",
+    stdio: "pipe",
+  });
   if (dockerContainers.exitCode !== 0) {
     return "unknown";
   }
 
   const containerNames = parseNamesOutput(dockerContainers.stdout);
-  return hasRegistryContainer(containerNames, registryHost) ? "healthy" : "stale";
+  return hasExpectedRegistryName(containerNames, registryHost) ? "healthy" : "stale";
 };
 
 export const clusterExists = async (

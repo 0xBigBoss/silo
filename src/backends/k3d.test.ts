@@ -116,7 +116,7 @@ describe("ensureCluster", () => {
     expect(calls.map((call) => call.join(" "))).toEqual([
       "k3d cluster list",
       "k3d registry list -o json",
-      "docker ps --filter name=localnet-demo-registry.localhost --format {{.Names}}",
+      "docker ps --format {{.Names}}",
     ]);
   });
 
@@ -195,5 +195,36 @@ describe("ensureCluster", () => {
 
     expect(result.created).toBe(false);
     expect(checkedCalls).toHaveLength(0);
+  });
+
+  test("treats partial container-name matches as stale", async () => {
+    const checkedCalls: string[][] = [];
+    const responses: CommandResult[] = [
+      commandResult({ stdout: "localnet-demo\n" }),
+      commandResult({ stdout: '[{"name":"localnet-demo-registry.localhost"}]' }),
+      commandResult({ stdout: "foo-localnet-demo-registry.localhost-backup\n" }),
+    ];
+
+    const deps: EnsureClusterDeps = {
+      runCommand: async (cmd) => {
+        const result = responses.shift();
+        if (!result) {
+          throw new Error(`unexpected runCommand call: ${cmd.join(" ")}`);
+        }
+        return result;
+      },
+      runCommandChecked: async (cmd) => {
+        checkedCalls.push(cmd);
+        return commandResult();
+      },
+    };
+
+    const result = await ensureCluster(params, deps);
+
+    expect(result.created).toBe(true);
+    expect(checkedCalls.map((call) => call.join(" "))).toEqual([
+      "k3d cluster delete localnet-demo",
+      "k3d cluster create localnet-demo --kubeconfig-update-default=false --kubeconfig-switch-context=false --registry-create localnet-demo-registry.localhost:5000 --wait",
+    ]);
   });
 });
