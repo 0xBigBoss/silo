@@ -1,5 +1,13 @@
 # @0xbigboss/silo
 
+## 0.5.6
+
+### Patch Changes
+
+- 1ba52bd: Validate k3d registry `hostFrom*` advertisement overrides against the resolved
+  shortened/hash-based k3d registry identity to prevent unreachable hostnames and
+  `ImagePullBackOff` during local image pulls.
+
 ## 0.5.5
 
 ### Patch Changes
