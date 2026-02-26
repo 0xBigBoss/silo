@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { applyRegistryPortOverride } from "./registry";
+import { applyRegistryPortOverride, resolveRegistryAdvertiseSettings } from "./registry";
 import { buildInstanceIdentity } from "./identity";
 import type { InstanceState, ResolvedConfig } from "./types";
 
@@ -21,11 +21,11 @@ const baseConfig: ResolvedConfig = {
   projectRoot: "/repo",
 };
 
-const buildState = (port: number): InstanceState => {
+const buildState = (port: number, name = "demo"): InstanceState => {
   const ports = { K3D_REGISTRY_PORT: port };
   const hosts = { APP_HOST: "demo.localhost" };
   const identity = buildInstanceIdentity({
-    name: "demo",
+    name,
     prefix: baseConfig.prefix,
     hosts,
     ports,
@@ -33,7 +33,7 @@ const buildState = (port: number): InstanceState => {
     registryEnabled: true,
   });
   return {
-    name: "demo",
+    name,
     ports,
     identity,
     createdAt: "2026-01-01T00:00:00.000Z",
@@ -69,5 +69,79 @@ describe("applyRegistryPortOverride", () => {
     expect(result.changed).toBe(false);
     expect(result.state.ports.K3D_REGISTRY_PORT).toBe(49157);
     expect(result.urls.REGISTRY_URL).toBe("http://localhost:49157");
+  });
+});
+
+describe("resolveRegistryAdvertiseSettings", () => {
+  test("throws when k3d hostFrom override does not match resolved registry identity", () => {
+    const longName = "featured-app-implementation-with-very-long-name-hbn5";
+    const state = buildState(49157, longName);
+    const config: ResolvedConfig = {
+      ...baseConfig,
+      k3d: {
+        enabled: true,
+        registry: {
+          enabled: true,
+          hostFromContainerRuntime: "${prefix}-${name}-registry.localhost:5000",
+        },
+      },
+    };
+
+    expect(() =>
+      resolveRegistryAdvertiseSettings({
+        config,
+        state,
+        urls: {},
+      })
+    ).toThrow("k3d.registry.hostFromContainerRuntime resolves to");
+  });
+
+  test("supports safe hostFrom override using K3D_CLUSTER_NAME", () => {
+    const longName = "featured-app-implementation-with-very-long-name-hbn5";
+    const state = buildState(49157, longName);
+    const config: ResolvedConfig = {
+      ...baseConfig,
+      k3d: {
+        enabled: true,
+        registry: {
+          enabled: true,
+          hostFromContainerRuntime: "${K3D_CLUSTER_NAME}-registry.localhost:5000",
+        },
+      },
+    };
+
+    const settings = resolveRegistryAdvertiseSettings({
+      config,
+      state,
+      urls: {},
+    });
+
+    expect(settings).not.toBeNull();
+    expect(settings?.hostFromContainerRuntime).toBe(
+      `${state.identity.k3dClusterName}-registry.localhost:5000`
+    );
+  });
+
+  test("throws when cluster-network host override does not match resolved registry identity", () => {
+    const longName = "featured-app-implementation-with-very-long-name-hbn5";
+    const state = buildState(49157, longName);
+    const config: ResolvedConfig = {
+      ...baseConfig,
+      k3d: {
+        enabled: true,
+        registry: {
+          enabled: true,
+          hostFromClusterNetwork: "${prefix}-${name}-registry.localhost:5000",
+        },
+      },
+    };
+
+    expect(() =>
+      resolveRegistryAdvertiseSettings({
+        config,
+        state,
+        urls: {},
+      })
+    ).toThrow("k3d.registry.hostFromClusterNetwork resolves to");
   });
 });

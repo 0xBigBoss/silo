@@ -24,6 +24,22 @@ const resolveTemplateValue = (
   return resolved.length > 0 ? resolved : undefined;
 };
 
+const validateK3dRegistryHostOverride = (params: {
+  field: "hostFromContainerRuntime" | "hostFromClusterNetwork";
+  value: string;
+  expected: string;
+}): void => {
+  const { field, value, expected } = params;
+  if (value === expected) {
+    return;
+  }
+
+  throw new SiloError(
+    `k3d.registry.${field} resolves to '${value}', but k3d registry host is '${expected}'. Use \${K3D_CLUSTER_NAME}-registry.localhost:5000 or leave it unset.`,
+    "INVALID_CONFIG"
+  );
+};
+
 const buildK3dRegistryDefaults = (state: InstanceState): RegistryAdvertiseSettings => {
   const registryPort = state.ports.K3D_REGISTRY_PORT;
   if (!registryPort) {
@@ -56,12 +72,28 @@ export const resolveRegistryAdvertiseSettings = (params: {
   const k3dRegistry = config.k3d?.registry;
   if (k3dRegistry?.enabled && k3dRegistry.advertise !== false) {
     const defaults = buildK3dRegistryDefaults(state);
+    if (!defaults.hostFromContainerRuntime || !defaults.hostFromClusterNetwork) {
+      throw new SiloError(
+        "K3D registry defaults missing for hostFrom validation",
+        "INVALID_STATE"
+      );
+    }
     const hostFromContainerRuntime =
       resolveTemplateValue(k3dRegistry.hostFromContainerRuntime, vars) ??
       defaults.hostFromContainerRuntime;
     const hostFromClusterNetwork =
       resolveTemplateValue(k3dRegistry.hostFromClusterNetwork, vars) ??
       defaults.hostFromClusterNetwork;
+    validateK3dRegistryHostOverride({
+      field: "hostFromContainerRuntime",
+      value: hostFromContainerRuntime,
+      expected: defaults.hostFromContainerRuntime,
+    });
+    validateK3dRegistryHostOverride({
+      field: "hostFromClusterNetwork",
+      value: hostFromClusterNetwork,
+      expected: defaults.hostFromClusterNetwork,
+    });
     const help = resolveTemplateValue(k3dRegistry.help, vars);
     return {
       source: "k3d",
